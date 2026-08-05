@@ -141,32 +141,26 @@ def cmd_tree(eps: float, min_samples: int, target_family: int):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="CyberPhylogeny Framework CLI")
-    subparsers = parser.add_subparsers(dest="command")
+    subparsers = parser.add_subparsers(dest="command", help="Available commands")
     
-    # Ingest command
-    subparsers.add_parser("ingest", help="Fetch MITRE CTI data and populate database")
+    # 1. Ingest
+    parser_ingest = subparsers.add_parser("ingest", help="Ingest MITRE STIX data into Genome DB")
     
-    # Cluster command
-    cluster_parser = subparsers.add_parser("cluster", help="Cluster attacks into structural families")
-    cluster_parser.add_argument("--eps", type=float, default=0.25, help="DBSCAN epsilon distance (0.0 to 1.0)")
-    cluster_parser.add_argument("--min_samples", type=int, default=2, help="DBSCAN min samples")
+    # 2. Cluster
+    parser_cluster = subparsers.add_parser("cluster", help="Cluster attacks into Evolutionary Families")
+    parser_cluster.add_argument("--eps", type=float, default=0.6, help="DBSCAN epsilon distance (0.0 to 1.0)")
+    parser_cluster.add_argument("--min_samples", type=int, default=2, help="Minimum attacks to form a family")
     
-    # Evolution command
-    evo_parser = subparsers.add_parser("evolution", help="Trace mutations within a specific attack family")
-    evo_parser.add_argument("--eps", type=float, default=0.6, help="DBSCAN epsilon distance (0.0 to 1.0)")
-    evo_parser.add_argument("--min_samples", type=int, default=2, help="DBSCAN min samples")
-    evo_parser.add_argument("family", type=int, help="The ID of the family to trace (e.g. 1)")
+    # 3. Tree
+    parser_tree = subparsers.add_parser("tree", help="Build a Phylogenetic Tree for a specific family")
+    parser_tree.add_argument("family", type=str, help="Family ID to trace (e.g., '24')")
+    parser_tree.add_argument("--eps", type=float, default=0.6, help="DBSCAN epsilon used for clustering")
+    parser_tree.add_argument("--min_samples", type=int, default=2, help="Minimum samples used for clustering")
     
-    # Tree command
-    tree_parser = subparsers.add_parser("tree", help="Generate a Phylogenetic Tree (Mermaid graph) for a family")
-    tree_parser.add_argument("--eps", type=float, default=0.6, help="DBSCAN epsilon distance (0.0 to 1.0)")
-    tree_parser.add_argument("--min_samples", type=int, default=2, help="DBSCAN min samples")
-    tree_parser.add_argument("family", type=int, help="The ID of the family to visualize (e.g. 15)")
-    
-    # Predict command
-    predict_parser = subparsers.add_parser("predict", help="Predict next behavior using KNN Sequence Alignment")
-    predict_parser.add_argument("sequence", type=str, help="Comma separated list of Gene IDs e.g. T1190,T1003")
-    predict_parser.add_argument("--k", type=int, default=5, help="Number of nearest neighbors to calculate against")
+    # 4. Predict
+    parser_predict = subparsers.add_parser("predict", help="Predict next steps of an ongoing attack")
+    parser_predict.add_argument("sequence", type=str, help="Comma-separated list of Technique IDs (e.g., 'T1566.001,T1059.001')")
+    parser_predict.add_argument("--k", type=int, default=3, help="Number of nearest neighbors to consider")
     
     args = parser.parse_args()
     
@@ -174,10 +168,8 @@ if __name__ == "__main__":
         cmd_ingest()
     elif args.command == "cluster":
         cmd_cluster(args.eps, args.min_samples)
-    elif args.command == "evolution":
-        cmd_evolution(args.eps, args.min_samples, args.family)
     elif args.command == "tree":
-        cmd_tree(args.eps, args.min_samples, args.family)
+        cmd_tree(args.eps, args.min_samples, int(args.family))
     elif args.command == "predict":
         cmd_predict(args.sequence, args.k)
     else:

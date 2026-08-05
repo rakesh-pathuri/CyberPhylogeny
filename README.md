@@ -109,21 +109,7 @@ Family 24 - 5 attacks
 +------------------------------------------------+
 ```
 
-**2. Trace Evolution (Linear Traceback)** 
-Visualizes the linear genetic mutations between ancestors and descendants.
-```bash
-python main.py evolution --eps 0.6 --min_samples 2 15
-```
-*Example Output:*
-```text
-Tracing Evolution for Family 15 (5 attacks)
 
-Evolution: Trojan.Mebromi -> Hacking Team UEFI Rootkit
-  - Gene Inserted: [Rootkit]
-
-Evolution: Hacking Team UEFI Rootkit -> Zeroaccess
-  - Gene Mutated: STEALTH [System Firmware -> NTFS File Attributes]
-```
 
 **3. Phylogenetic Terminal Tree (NEW)** 
 Generates an interactive HTML graph and prints a rich, branched evolutionary tree mapping precise mutations.
