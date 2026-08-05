@@ -112,7 +112,7 @@ Family 24 - 5 attacks
 
 
 **3. Phylogenetic Terminal Tree (NEW)** 
-Generates an interactive HTML graph and prints a rich, branched evolutionary tree mapping precise mutations.
+Prints a rich, branched evolutionary tree mapping precise mutations.
 ```bash
 python main.py tree 24
 ```
@@ -130,8 +130,6 @@ Evolutionary Tree
     ├── persistence: Windows Service <-- New Gene
     ├── stealth: Compression <-- Mutated (from Stored Data Manipulation)
     └── defense-impairment: Clear Windows Event Logs
-
-Interactive visual graph saved to: family_S1135_phylogeny.html
 ```
 
 **4. Predict Next Steps** 

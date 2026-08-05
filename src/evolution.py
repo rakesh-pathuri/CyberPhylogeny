@@ -147,31 +147,6 @@ class EvolutionEngine:
             if v != root_idx:
                 lines.append(f"    class {family_genomes[v].id} descendant;")
                 
-        # 4. Generate Interactive PyVis HTML Graph
-        try:
-            from pyvis.network import Network
-            
-            # Create a directed network graph
-            net = Network(height="750px", width="100%", bgcolor="#222222", font_color="white", directed=True)
-            net.barnes_hut() # Use physics engine for layout
-            
-            # Add nodes
-            for i, genome in enumerate(family_genomes):
-                color = "#ff9f1c" if i == root_idx else "#2ec4b6"
-                title = f"<b>{genome.id}</b><br>{genome.name}<br>Length: {len(genome.genes)} genes"
-                net.add_node(genome.id, label=genome.id, title=title, color=color, size=20 + (len(genome.genes)))
-                
-            # Add edges
-            for u, v, dist in edges:
-                # Arrow points from Ancestor to Descendant
-                net.add_edge(family_genomes[u].id, family_genomes[v].id, title=f"{int(dist)} Mutations", value=int(dist), color="#777777")
-                
-            out_file = f"family_{family_genomes[0].id}_phylogeny.html"
-            net.save_graph(out_file)
-            console.print(f"[bold green]Interactive visual graph saved to: {out_file}[/bold green]")
-        except ImportError:
-            console.print("[yellow]Hint: 'pip install pyvis' to also generate interactive HTML graphs.[/yellow]")
-                
         return "\n".join(lines)
         
     def _get_aligned_genes(self, ancestor: Genome, descendant: Genome) -> List[str]:

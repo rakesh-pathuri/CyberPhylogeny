@@ -114,6 +114,40 @@ def cmd_predict(sequence_str: str, top_k: int = 5):
     console.print(table)
     console.print("[dim italic]* Confidence Score represents the mathematical similarity of the historical sequence matched (1.0 = perfect suffix alignment).[/dim italic]")
 
+def cmd_genome(attack_id: str):
+    """Displays the genome sequence for a specific attack ID."""
+    data = fetch_mitre_data()
+    _, genomes = parse_mitre_to_genomes(data)
+    
+    # Allow case-insensitive search
+    target = next((g for g in genomes if g.id.lower() == attack_id.lower()), None)
+    if not target:
+        console.print(f"[red]Attack ID '{attack_id}' not found in the Threat Database.[/red]")
+        return
+        
+    console.print(f"\n[bold cyan]Genome Profile: {target.name} ({target.id})[/bold cyan]")
+    if target.description:
+        desc = target.description.split("\n")[0] # Just the first line/sentence
+        desc = desc[:200] + "..." if len(desc) > 200 else desc
+        console.print(f"[dim]{desc}[/dim]\n")
+        
+    console.print(f"[bold]Genetic Sequence ({len(target.genes)} Genes)[/bold]")
+    table = Table(show_header=True, header_style="bold magenta")
+    table.add_column("Index", style="dim", width=5)
+    table.add_column("Technique ID", style="dim", width=15)
+    table.add_column("Implementation")
+    table.add_column("Behavior", style="italic")
+    
+    for i, gene in enumerate(target.genes, 1):
+        table.add_row(
+            str(i),
+            gene.technique_id,
+            gene.implementation,
+            gene.behavior
+        )
+        
+    console.print(table)
+
 def cmd_tree(eps: float, min_samples: int, target_family: int):
     """Generates a Mermaid.js Phylogenetic Tree for a family."""
     data = fetch_mitre_data()
@@ -146,18 +180,22 @@ if __name__ == "__main__":
     # 1. Ingest
     parser_ingest = subparsers.add_parser("ingest", help="Ingest MITRE STIX data into Genome DB")
     
-    # 2. Cluster
+    # 2. Genome Profile
+    parser_genome = subparsers.add_parser("genome", help="View the genetic sequence of a specific attack")
+    parser_genome.add_argument("attack_id", type=str, help="Attack ID (e.g., 'S0039')")
+    
+    # 3. Cluster
     parser_cluster = subparsers.add_parser("cluster", help="Cluster attacks into Evolutionary Families")
     parser_cluster.add_argument("--eps", type=float, default=0.6, help="DBSCAN epsilon distance (0.0 to 1.0)")
     parser_cluster.add_argument("--min_samples", type=int, default=2, help="Minimum attacks to form a family")
     
-    # 3. Tree
+    # 4. Tree
     parser_tree = subparsers.add_parser("tree", help="Build a Phylogenetic Tree for a specific family")
     parser_tree.add_argument("family", type=str, help="Family ID to trace (e.g., '24')")
     parser_tree.add_argument("--eps", type=float, default=0.6, help="DBSCAN epsilon used for clustering")
     parser_tree.add_argument("--min_samples", type=int, default=2, help="Minimum samples used for clustering")
     
-    # 4. Predict
+    # 5. Predict
     parser_predict = subparsers.add_parser("predict", help="Predict next steps of an ongoing attack")
     parser_predict.add_argument("sequence", type=str, help="Comma-separated list of Technique IDs (e.g., 'T1566.001,T1059.001')")
     parser_predict.add_argument("--k", type=int, default=3, help="Number of nearest neighbors to consider")
@@ -166,6 +204,8 @@ if __name__ == "__main__":
     
     if args.command == "ingest":
         cmd_ingest()
+    elif args.command == "genome":
+        cmd_genome(args.attack_id)
     elif args.command == "cluster":
         cmd_cluster(args.eps, args.min_samples)
     elif args.command == "tree":
