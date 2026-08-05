@@ -111,7 +111,7 @@ Family 24 - 5 attacks
 
 
 
-**3. Phylogenetic Terminal Tree (NEW)** 
+**3. Phylogenetic Terminal Tree** 
 Prints a rich, branched evolutionary tree mapping precise mutations.
 ```bash
 python main.py tree 24
