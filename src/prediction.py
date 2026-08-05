@@ -16,11 +16,11 @@ class PredictionEngine:
         """Builds a lookup table for all known Genes for fast retrieval."""
         for genome in self.genomes:
             for gene in genome.genes:
-                self.gene_lookup[gene.id] = gene
+                self.gene_lookup[gene.technique_id] = gene
                 
     def predict_next(self, current_sequence: List[str], top_k: int = 5) -> List[Tuple[Gene, float, float]]:
         """
-        V3 IDS/XDR Grade Prediction Engine.
+        Probabilistic Prediction Engine.
         Uses Sliding Window Suffix Alignment and Distance-Weighted Voting.
         Returns: [(Gene, Probability Percentage, Confidence Multiplier)]
         """

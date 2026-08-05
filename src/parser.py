@@ -61,9 +61,9 @@ def parse_mitre_to_genomes(data: dict) -> Tuple[List[Gene], List[Genome]]:
                 primary_tactic = kc_phases[0]["phase_name"] if kc_phases else "unknown"
                 
                 techniques[obj["id"]] = Gene(
-                    id=ext_id,
-                    name=obj.get("name", "Unknown"),
-                    tactic=primary_tactic,
+                    technique_id=ext_id,
+                    implementation=obj.get("name", "Unknown"),
+                    behavior=primary_tactic,
                     description=obj.get("description")
                 )
         elif t in ["intrusion-set", "malware", "tool"]:
@@ -99,7 +99,7 @@ def parse_mitre_to_genomes(data: dict) -> Tuple[List[Gene], List[Genome]]:
             
         # Sort genes to build the Genome sequence according to kill chain
         # If multiple genes have the same tactic, sort by gene ID as a secondary key
-        used_genes.sort(key=lambda g: (get_kill_chain_sort_key(g.tactic), g.id))
+        used_genes.sort(key=lambda g: (get_kill_chain_sort_key(g.behavior), g.technique_id))
         
         genomes.append(Genome(
             id=group_info["ext_id"],

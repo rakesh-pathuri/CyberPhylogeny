@@ -1,23 +1,23 @@
-# CyberPhylogeny: Attack Genome Engine
+# CyberPhylogeny: A Bio-Inspired Framework for Reconstructing Evolutionary Relationships of Cyberattacks
 
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![Cybersecurity](https://img.shields.io/badge/Domain-Cybersecurity-red)]()
 [![Machine Learning](https://img.shields.io/badge/Domain-Machine_Learning-green)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Abstract
-Traditional cybersecurity detection relies on rigid, signature-based indicators (IOCs). However, when threat actors slightly mutate their tools or techniques, these signatures fail. 
+> **Research Concept:** Traditional Threat Intelligence (CTI) relies heavily on matching static Indicators of Compromise (IoCs). However, when attackers mutate their malware (e.g., swapping a persistence mechanism), static IoCs fail. **CyberPhylogeny** bridges the gap between Computational Biology and Cybersecurity by treating cyberattacks as biological organisms. By modeling attacks as sequences of behaviors (Genomes), this framework is capable of **reconstructing the evolutionary relationships** between attack variants.
 
-**CyberPhylogeny** introduces a biological approach to cyber defense. By extracting the fundamental behaviors (Techniques) of an attack and treating them as structural "DNA Genomes", this engine can mathematically align, cluster, and predict cyberattacks using algorithms originally designed for computational biology (like Levenshtein distance, Jaccard Similarity, and K-Nearest Neighbors). 
+## The Biological Mapping
 
-This allows the engine to accurately trace how malware mutates over time and probabilistically predict an attacker's next move, even if they intentionally deviate from historical patterns.
+CyberPhylogeny maps standard cybersecurity concepts into a biological ontology:
 
-## Core Biological Concepts
-The engine translates MITRE ATT&CK concepts into biological equivalents:
-- **Gene**: A single, distinct behavior (e.g., `T1566.001 Spearphishing`).
-- **Genome**: The complete, ordered sequence of genes representing an entire cyberattack campaign.
-- **Family**: A mathematical cluster of Genomes (threat groups or malware) proven to share a common structural ancestor.
-- **Mutation**: The insertion, deletion, or substitution of a specific gene across generations of an attack.
+- **Gene:** A single atomic action in an attack. Modeled as a 3-tier hierarchy:
+  - *Behavior* (e.g., Credential Theft)
+  - *Implementation* (e.g., LSASS Memory)
+  - *MITRE Technique* (e.g., T1003.001)
+- **Genome:** The ordered sequence of Genes that makes up an entire cyberattack (e.g., APT29).
+- **Evolutionary Family:** A cluster of Genomes that share a common ancestral structure, identified mathematically rather than by human-assigned labels.
+- **Phylogenetic Tree:** A reconstructed branching tree showing exactly how a novel attack evolved from a known ancestor.
 
 ## Research Areas & Domains
 This project sits at the intersection of computational biology, data science, and threat intelligence:
@@ -109,8 +109,8 @@ Family 24 - 5 attacks
 +------------------------------------------------+
 ```
 
-**2. Trace Evolution** 
-Visualizes the specific genetic mutations between ancestors and descendants in a family.
+**2. Trace Evolution (Linear Traceback)** 
+Visualizes the linear genetic mutations between ancestors and descendants.
 ```bash
 python main.py evolution --eps 0.6 --min_samples 2 15
 ```
@@ -125,7 +125,30 @@ Evolution: Hacking Team UEFI Rootkit -> Zeroaccess
   - Gene Mutated: STEALTH [System Firmware -> NTFS File Attributes]
 ```
 
-**3. Predict Next Steps** 
+**3. Phylogenetic Terminal Tree (NEW)** 
+Generates an interactive HTML graph and prints a rich, branched evolutionary tree mapping precise mutations.
+```bash
+python main.py tree 24
+```
+*Example Output:*
+```text
+Phylogenetic Tree for Family 24 (2 variants)
+Evolutionary Tree
+`-- Ancestor: S1135 (MultiLayer Wiper)
+    +-- execution: Scheduled Task
+    +-- execution: Windows Command Shell
+    `-- Descendant: S0697 (HermeticWiper)
+        +-- execution: Scheduled Task
+        +-- execution: Windows Command Shell
+        +-- execution: Native API <-- New Gene
+        +-- persistence: Windows Service <-- New Gene
+        +-- stealth: Compression <-- Mutated (from Stored Data Manipulation)
+        `-- defense-impairment: Clear Windows Event Logs
+
+Interactive visual graph saved to: family_S1135_phylogeny.html
+```
+
+**4. Predict Next Steps** 
 Predicts the attacker's next move based on mathematical sequence alignment.
 ```bash
 python main.py predict T1566.001,T1059.001
@@ -135,12 +158,12 @@ python main.py predict T1566.001,T1059.001
 Ongoing Attack Sequence: ['T1566.001', 'T1059.001']
 
 Most Probable Next Behaviors:
-+-------------------------------------------------------------------------+
-| Predicted Gene ID | Name                  | Tactic    | Probability | Confidence |
-|-------------------+-----------------------+-----------+-------------+------------|
-| T1059.003         | Windows Command Shell | execution |       80.0% |      4.00x |
-| T1059.007         | JavaScript            | execution |       20.0% |      1.00x |
-+-------------------------------------------------------------------------+
++--------------------------------------------------------------------------------+
+| Predicted Technique ID | Implementation        | Behavior  | Prob | Confidence |
+|------------------------+-----------------------+-----------+------+------------|
+| T1059.003              | Windows Command Shell | execution |  80% |      4.00x |
+| T1059.007              | JavaScript            | execution |  20% |      1.00x |
++--------------------------------------------------------------------------------+
 ```
 
 ---

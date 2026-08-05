@@ -96,17 +96,17 @@ def cmd_predict(sequence_str: str, top_k: int = 5):
         
     console.print("\n[bold]Most Probable Next Behaviors:[/bold]")
     table = Table(show_header=True, header_style="bold magenta")
-    table.add_column("Predicted Gene ID", style="dim", width=20)
-    table.add_column("Name")
-    table.add_column("Tactic", style="italic")
+    table.add_column("Predicted Technique ID", style="dim", width=20)
+    table.add_column("Implementation")
+    table.add_column("Behavior", style="italic")
     table.add_column("Probability", justify="right")
     table.add_column("Confidence Score", justify="right", style="green")
     
     for gene, prob, confidence in predictions:
         table.add_row(
-            gene.id,
-            gene.name,
-            gene.tactic,
+            gene.technique_id,
+            gene.implementation,
+            gene.behavior,
             f"{prob*100:.1f}%",
             f"{confidence:.2f}x"
         )
@@ -114,8 +114,33 @@ def cmd_predict(sequence_str: str, top_k: int = 5):
     console.print(table)
     console.print("[dim italic]* Confidence Score represents the mathematical similarity of the historical sequence matched (1.0 = perfect suffix alignment).[/dim italic]")
 
+def cmd_tree(eps: float, min_samples: int, target_family: int):
+    """Generates a Mermaid.js Phylogenetic Tree for a family."""
+    data = fetch_mitre_data()
+    _, genomes = parse_mitre_to_genomes(data)
+    
+    sim_engine = SimilarityEngine(genomes)
+    families = sim_engine._cluster_with_metric(genomes, metric_type="levenshtein_genes", eps=eps, min_samples=min_samples)
+    
+    if target_family not in families:
+        console.print(f"[red]Family {target_family} not found in Stage 1.[/red]")
+        return
+        
+    family_genomes = families[target_family]
+    evo_engine = EvolutionEngine(genomes)
+    
+    console.print(f"\n[bold cyan]Phylogenetic Tree for Family {target_family} ({len(family_genomes)} variants)[/bold cyan]")
+    
+    # 1. Print the rich terminal tree
+    terminal_tree = evo_engine.build_terminal_tree(family_genomes)
+    console.print(terminal_tree)
+    console.print()
+    
+    # 2. Generate the PyVis/Mermaid files in the background
+    evo_engine.build_phylogenetic_tree(family_genomes)
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="CyberAttack Genome CLI")
+    parser = argparse.ArgumentParser(description="CyberPhylogeny Framework CLI")
     subparsers = parser.add_subparsers(dest="command")
     
     # Ingest command
@@ -132,6 +157,12 @@ if __name__ == "__main__":
     evo_parser.add_argument("--min_samples", type=int, default=2, help="DBSCAN min samples")
     evo_parser.add_argument("family", type=int, help="The ID of the family to trace (e.g. 1)")
     
+    # Tree command
+    tree_parser = subparsers.add_parser("tree", help="Generate a Phylogenetic Tree (Mermaid graph) for a family")
+    tree_parser.add_argument("--eps", type=float, default=0.6, help="DBSCAN epsilon distance (0.0 to 1.0)")
+    tree_parser.add_argument("--min_samples", type=int, default=2, help="DBSCAN min samples")
+    tree_parser.add_argument("family", type=int, help="The ID of the family to visualize (e.g. 15)")
+    
     # Predict command
     predict_parser = subparsers.add_parser("predict", help="Predict next behavior using KNN Sequence Alignment")
     predict_parser.add_argument("sequence", type=str, help="Comma separated list of Gene IDs e.g. T1190,T1003")
@@ -145,6 +176,8 @@ if __name__ == "__main__":
         cmd_cluster(args.eps, args.min_samples)
     elif args.command == "evolution":
         cmd_evolution(args.eps, args.min_samples, args.family)
+    elif args.command == "tree":
+        cmd_tree(args.eps, args.min_samples, args.family)
     elif args.command == "predict":
         cmd_predict(args.sequence, args.k)
     else:
