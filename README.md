@@ -87,7 +87,7 @@ graph TD
 
 ### Command Line Interface & Examples
 
-**1. Inspect an Attack Genome (NEW)**
+**1. Inspect an Attack Genome**
 Pulls the complete behavioral genetic sequence and Threat Intel profile of a specific attack.
 ```bash
 python main.py genome S0697
