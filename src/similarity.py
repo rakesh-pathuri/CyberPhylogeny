@@ -92,7 +92,13 @@ class SimilarityEngine:
             seqs = [g.to_tactic_sequence() for g in genomes]
             
         with Progress() as progress:
-            task = progress.add_task(f"[cyan]Calculating distances ({metric_type})...", total=n)
+            display_name = {
+                "levenshtein_genes": "Sequence Alignment",
+                "jaccard_genes": "Jaccard Motif Matching",
+                "levenshtein_tactics": "Taxonomic Zooming"
+            }.get(metric_type, metric_type)
+            
+            task = progress.add_task(f"[cyan]Calculating distances ({display_name})...", total=n)
             
             for i in range(n):
                 seq_i = seqs[i]
