@@ -98,7 +98,8 @@ def cmd_predict(sequence_str: str, top_k: int = 5):
     table = Table(show_header=True, header_style="bold magenta")
     table.add_column("Predicted Technique ID", style="dim", width=20)
     table.add_column("Implementation")
-    table.add_column("Behavior", style="italic")
+    table.add_column("Behavior")
+    table.add_column("Tactic", style="italic")
     table.add_column("Probability", justify="right")
     table.add_column("Confidence Score", justify="right", style="green")
     
@@ -107,6 +108,7 @@ def cmd_predict(sequence_str: str, top_k: int = 5):
             gene.technique_id,
             gene.implementation,
             gene.behavior,
+            gene.tactic,
             f"{prob*100:.1f}%",
             f"{confidence:.2f}x"
         )
@@ -136,14 +138,16 @@ def cmd_genome(attack_id: str):
     table.add_column("Index", style="dim", width=5)
     table.add_column("Technique ID", style="dim", width=15)
     table.add_column("Implementation")
-    table.add_column("Behavior", style="italic")
+    table.add_column("Behavior")
+    table.add_column("Tactic", style="italic")
     
     for i, gene in enumerate(target.genes, 1):
         table.add_row(
             str(i),
             gene.technique_id,
             gene.implementation,
-            gene.behavior
+            gene.behavior,
+            gene.tactic
         )
         
     console.print(table)

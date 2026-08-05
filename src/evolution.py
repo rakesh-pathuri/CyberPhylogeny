@@ -171,23 +171,23 @@ class EvolutionEngine:
         while i > 0 or j > 0:
             if i > 0 and j > 0 and seq1[i-1] == seq2[j-1]:
                 gene = descendant.genes[j-1]
-                aligned.append(f"                   | {gene.behavior}: {gene.implementation}")
+                aligned.append(f"                   | \\[{gene.tactic}] {gene.behavior}: {gene.implementation}")
                 i -= 1; j -= 1
             elif i > 0 and j > 0 and dp[i][j] == dp[i-1][j-1] + 1:
                 mutation_score += 1.0
                 old_g = ancestor.genes[i-1]
                 new_g = descendant.genes[j-1]
-                aligned.append(f"Type: Substitution | {new_g.behavior}: {new_g.implementation} [red]<-- Mutated (from {old_g.implementation})[/red]")
+                aligned.append(f"Type: Substitution | \\[{new_g.tactic}] {new_g.behavior}: {new_g.implementation} [red]<-- Mutated (from {old_g.implementation})[/red]")
                 i -= 1; j -= 1
             elif i > 0 and dp[i][j] == dp[i-1][j] + 1:
                 mutation_score += 1.0
                 old_g = ancestor.genes[i-1]
-                aligned.append(f"Type: Deletion     | [strike]{old_g.behavior}: {old_g.implementation}[/strike] [yellow]<-- Dropped[/yellow]")
+                aligned.append(f"Type: Deletion     | [strike]\\[{old_g.tactic}] {old_g.behavior}: {old_g.implementation}[/strike] [yellow]<-- Dropped[/yellow]")
                 i -= 1
             else:
                 mutation_score += 1.0
                 new_g = descendant.genes[j-1]
-                aligned.append(f"Type: Insertion    | {new_g.behavior}: {new_g.implementation} [green]<-- New Gene[/green]")
+                aligned.append(f"Type: Insertion    | \\[{new_g.tactic}] {new_g.behavior}: {new_g.implementation} [green]<-- New Gene[/green]")
                 j -= 1
                 
         return aligned[::-1], mutation_score
@@ -235,7 +235,7 @@ class EvolutionEngine:
                 label = f"[bold cyan]Ancestor: {genome.id} ({genome.name})[/bold cyan]"
                 current_branch = root_tree.add(label)
                 for gene in genome.genes:
-                    current_branch.add(f"{gene.behavior}: {gene.implementation}")
+                    current_branch.add(f"\\[{gene.tactic}] {gene.behavior}: {gene.implementation}")
             else:
                 # Find parent in our MST
                 parent_idx = None

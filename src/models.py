@@ -3,10 +3,11 @@ from typing import List, Optional
 from datetime import datetime
 
 class Gene(BaseModel):
-    """A single atomic action in an attack. Modeled as a 3-tier hierarchy."""
-    technique_id: str  # e.g., 'T1003'
-    implementation: str # e.g., 'OS Credential Dumping'
-    behavior: str # e.g., 'credential-access'
+    """A single atomic action in an attack. Modeled as a 4-tier hierarchy."""
+    technique_id: str  # e.g., 'T1003.001'
+    implementation: str # e.g., 'LSASS Memory'
+    behavior: str # e.g., 'OS Credential Dumping'
+    tactic: str # e.g., 'credential-access'
     description: Optional[str] = None
 
 class Genome(BaseModel):
@@ -25,5 +26,5 @@ class Genome(BaseModel):
         return {g.technique_id for g in self.genes}
         
     def to_tactic_sequence(self) -> List[str]:
-        """Returns ordered list of Behaviors (Stage 3: Taxonomic Zooming)."""
-        return [g.behavior for g in self.genes]
+        """Returns ordered list of Tactics (Stage 3: Taxonomic Zooming)."""
+        return [g.tactic for g in self.genes]

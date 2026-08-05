@@ -1,27 +1,51 @@
 # CyberPhylogeny: A Bio-Inspired Framework for Reconstructing Evolutionary Relationships of Cyberattacks
 
+```text
+                Root Ancestor (e.g., APT29)
+                            │
+               ┌────────────┴────────────┐
+               │                         │
+            Family A                  Family B
+               │                         │
+          Attack Variant 1          Attack Variant 2
+               │
+          Ongoing Attack
+```
+
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![Cybersecurity](https://img.shields.io/badge/Domain-Cybersecurity-red)]()
-[![Machine Learning](https://img.shields.io/badge/Domain-Machine_Learning-green)]()
+[![Bioinformatics](https://img.shields.io/badge/Domain-Bioinformatics-green)]()
+[![Threat Intelligence](https://img.shields.io/badge/Domain-Threat_Intelligence-yellow)]()
+[![Graph Analytics](https://img.shields.io/badge/Domain-Graph_Analytics-purple)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 > **Research Concept:** CyberPhylogeny models cyberattacks as evolving behavioral genomes and reconstructs their evolutionary lineage using bioinformatics-inspired sequence analysis and phylogenetic inference.
 
+## Current Research Questions
+
+This framework was built to explore the following open questions in proactive cyber defense:
+* Can behavioral genomes accurately reconstruct the evolutionary ancestry of a cyberattack?
+* Does sequence alignment clustering outperform traditional MITRE ATT&CK bag-of-words similarity?
+* Can mathematical evolutionary distance improve ongoing attack prediction?
+* Can quantifiable mutations (insertions/deletions/substitutions) identify how an attacker is adapting their tradecraft?
+
 ## The Biological Mapping
 
-CyberPhylogeny maps standard cybersecurity ideas into biology:
+CyberPhylogeny maps standard cybersecurity ideas into a 4-tier biological ontology:
 
-- **Gene:** A single action in an attack. It has 3 parts:
+- **Gene:** A single atomic action in an attack.
   ```text
-  Behavior (e.g., Credential Access)
+  Tactic (e.g., Credential Access)
       ↓
-  Implementation (e.g., OS Credential Dumping)
+  Behavior (e.g., OS Credential Dumping)
       ↓
-  MITRE Technique (e.g., T1003)
+  Implementation (e.g., LSASS Memory)
+      ↓
+  MITRE Technique (e.g., T1003.001)
   ```
 - **Genome:** The ordered sequence of Genes that makes up a complete cyberattack.
 - **Evolutionary Family:** A group of Genomes that share a common ancestor.
-- **Phylogenetic Tree:** A branching tree showing exactly how a new attack evolved from an older one.
+- **Phylogenetic Tree:** A branching graph showing exactly how a new attack evolved from an older one.
 
 ## Mathematical Definitions
 
@@ -37,14 +61,14 @@ This research framework relies on formal definitions to model attacks:
 Standard Threat Intelligence tools use MITRE ATT&CK to describe what an attacker did. CyberPhylogeny introduces a new approach by shifting focus from **pattern matching** to **evolutionary reconstruction**:
 
 1. **From Similarity to Ancestry:** Traditional systems compare two lists of techniques and give a simple score (e.g., "85% match"). CyberPhylogeny uses Minimum Spanning Trees (MST) to show *why* they are similar: *"Attack B evolved from Attack A, and here is the exact branch where it mutated."*
-2. **Biological Abstraction:** Comparing raw MITRE IDs (like `T1059.001` vs `T1059.006`) treats them as completely different strings. By using the 3-part Gene hierarchy, CyberPhylogeny mathematically understands that changing PowerShell to Python is *not* a new attack—it is just a **mutation** of the same underlying "Execution" gene.
-3. **Predictive Alignment vs. Reactive Detection:** CTI tools are reactive (they look at the past). CyberPhylogeny uses Sequence Alignment algorithms to probabilistically predict what an attacker *will do next*, based on the evolutionary history of their attack family.
+2. **Biological Abstraction:** Comparing raw MITRE IDs (like `T1059.001` vs `T1059.006`) treats them as completely different strings. By using the 4-part Gene hierarchy, CyberPhylogeny mathematically understands that changing PowerShell to Python is *not* a new attack—it is just a **mutation** of the same underlying "Execution" gene.
+3. **Predictive Alignment vs. Reactive Detection:** CTI tools are reactive (they look at the past). CyberPhylogeny uses Sequence Alignment algorithms to probabilistically estimate the most probable next behavioral gene, based on the evolutionary history of the attack family.
 
 ## Project Architecture (Multi-Stage Pipeline)
 
 ```mermaid
 graph TD
-    A[Raw STIX Data] -->|Parser| B(Genome Repository)
+    A[Raw STIX Data] -->|Parser| B(Genome Knowledge Base)
     
     %% Clustering Pipeline
     B -->|Sequence Alignment| C[Primary Families]
@@ -67,6 +91,15 @@ graph TD
     style H fill:#06d6a0,stroke:#333,stroke-width:2px,color:#black
 ```
 
+## Evaluation Metrics
+
+To validate the framework's efficacy against traditional CTI, CyberPhylogeny utilizes the following evaluation framework:
+* **Similarity Accuracy**: Benchmarking Sequence Alignment vs raw Jaccard similarity.
+* **Family Reconstruction Accuracy**: Validating cluster purity against known threat actor group overlap (e.g., separating distinct APT29 campaigns).
+* **Prediction Accuracy**: Cross-validating the suffix sequence matcher's ability to estimate the next gene in historical data.
+* **Mutation Detection Accuracy**: Tracking how accurately substitutions identify polymorphic malware variants.
+* **Phylogenetic Consistency**: Validating the MST branch structure against temporal cyber threat intelligence reports.
+
 ## Installation & Usage
 
 ### Local Setup
@@ -86,7 +119,7 @@ graph TD
    ```
 3. **Install Dependencies:**
    ```bash
-   pip install rich scikit-learn numpy pydantic
+   pip install rich scikit-learn numpy pydantic requests
    ```
 
 ### Command Line Interface & Examples
@@ -103,36 +136,20 @@ Genome Profile: HermeticWiper (S0697)
 has been used since at least early 2022, primarily against Ukraine...
 
 Genetic Sequence (26 Genes)
-+-----------------------------------------------------------------------------+
-| Index | Technique ID    | Implementation               | Behavior           |
-|-------+-----------------+------------------------------+--------------------|
-| 1     | T1053.005       | Scheduled Task               | execution          |
-| 2     | T1059.003       | Windows Command Shell        | execution          |
-| 3     | T1106           | Native API                   | execution          |
-| ...   | ...             | ...                          | ...                |
-+-----------------------------------------------------------------------------+
++-------------------------------------------------------------------------------------------------+
+| Index | Technique ID | Implementation        | Behavior              | Tactic                   |
+|-------+--------------+-----------------------+-----------------------+--------------------------|
+| 1     | T1053.005    | Scheduled Task        | Scheduled Task/Job    | execution                |
+| 2     | T1059.003    | Windows Command Shell | Command and Scripting | execution                |
+| 3     | T1106        | Native API            | Native API            | execution                |
+| ...   | ...          | ...                   | ...                   | ...                      |
++-------------------------------------------------------------------------------------------------+
 ```
 
 **2. Multi-Stage Clustering** 
 Groups attacks into families based on Sequence Alignment.
 ```bash
 python main.py cluster --eps 0.6 --min_samples 2
-```
-*Example Output:*
-```text
-STAGE 1: Sequence Alignment (Needleman-Wunsch) Families
-
-Family 24 - 5 attacks
-+------------------------------------------------+
-| Attack /     |                 |               |
-| Group ID     | Name            | Genome Length |
-|--------------+-----------------+---------------|
-| S0390        | SQLRat          | 8             |
-| S0360        | BONDUPDATER     | 7             |
-| G0133        | Nomadic Octopus | 7             |
-| G0079        | DarkHydrus      | 7             |
-| G0084        | Gallmaker       | 6             |
-+------------------------------------------------+
 ```
 
 **3. Phylogenetic Terminal Tree (Core Feature)** 
@@ -145,34 +162,20 @@ python main.py tree 24
 Phylogenetic Tree for Family 24 (2 variants)
 Evolutionary Tree
 ├── Ancestor: S1135 (MultiLayer Wiper)
-│   ├── execution: Scheduled Task
-│   └── execution: Windows Command Shell
+│   ├── [execution] Scheduled Task/Job: Scheduled Task
+│   └── [execution] Command and Scripting Interpreter: Windows Command Shell
 └── Descendant: S0697 (HermeticWiper) (Evolved from S1135)
     │   Mutation Score: 4.0
-    ├── execution: Scheduled Task
-    ├── execution: Windows Command Shell
-    ├── Type: Insertion    | execution: Native API <-- New Gene
-    ├── Type: Insertion    | persistence: Windows Service <-- New Gene
-    ├── Type: Substitution | stealth: Compression <-- Mutated (from Stored Data Manipulation)
-    └── defense-impairment: Clear Windows Event Logs
+    ├── [execution] Scheduled Task/Job: Scheduled Task
+    ├── [execution] Command and Scripting Interpreter: Windows Command Shell
+    ├── Type: Insertion    | [execution] Native API: Native API [green]<-- New Gene[/green]
+    └── Type: Substitution | [stealth] Obfuscated Files: Compression [red]<-- Mutated[/red]
 ```
 
 **4. Predict Next Steps** 
-Predicts the attacker's next move based on Suffix Sequence Matching.
+Estimates the attacker's most probable next behavioral gene.
 ```bash
 python main.py predict T1566.001,T1059.001
-```
-*Example Output:*
-```text
-Ongoing Attack Sequence: ['T1566.001', 'T1059.001']
-
-Most Probable Next Behaviors:
-+--------------------------------------------------------------------------------+
-| Predicted Technique ID | Implementation        | Behavior  | Prob | Confidence |
-|------------------------+-----------------------+-----------+------+------------|
-| T1059.003              | Windows Command Shell | execution |  80% |      4.00x |
-| T1059.007              | JavaScript            | execution |  20% |      1.00x |
-+--------------------------------------------------------------------------------+
 ```
 
 ---

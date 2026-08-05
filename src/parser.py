@@ -44,6 +44,15 @@ def parse_mitre_to_genomes(data: dict) -> Tuple[List[Gene], List[Genome]]:
     groups = {}
     group_to_techniques = defaultdict(list)
     
+    # Pre-pass: Build a map of Technique ID to Name for resolving parent Behaviors
+    id_to_name = {}
+    for obj in objects:
+        if obj.get("type") == "attack-pattern":
+            for ref in obj.get("external_references", []):
+                if ref.get("source_name") == "mitre-attack":
+                    id_to_name[ref.get("external_id")] = obj.get("name")
+                    break
+    
     # First pass: map objects
     for obj in objects:
         t = obj.get("type")
@@ -60,10 +69,19 @@ def parse_mitre_to_genomes(data: dict) -> Tuple[List[Gene], List[Genome]]:
                 kc_phases = obj.get("kill_chain_phases", [])
                 primary_tactic = kc_phases[0]["phase_name"] if kc_phases else "unknown"
                 
+                parent_id = ext_id.split('.')[0]
+                parent_name = id_to_name.get(parent_id, "Unknown Behavior")
+                
+                # In our 4-tier model:
+                # Tactic = Kill Chain Phase
+                # Behavior = Parent Technique Name
+                # Implementation = Sub-technique Name (or Parent Name if no sub-technique)
+                
                 techniques[obj["id"]] = Gene(
                     technique_id=ext_id,
-                    implementation=obj.get("name", "Unknown"),
-                    behavior=primary_tactic,
+                    implementation=obj.get("name", "Unknown Implementation"),
+                    behavior=parent_name,
+                    tactic=primary_tactic,
                     description=obj.get("description")
                 )
         elif t in ["intrusion-set", "malware", "tool"]:
@@ -99,7 +117,7 @@ def parse_mitre_to_genomes(data: dict) -> Tuple[List[Gene], List[Genome]]:
             
         # Sort genes to build the Genome sequence according to kill chain
         # If multiple genes have the same tactic, sort by gene ID as a secondary key
-        used_genes.sort(key=lambda g: (get_kill_chain_sort_key(g.behavior), g.technique_id))
+        used_genes.sort(key=lambda g: (get_kill_chain_sort_key(g.tactic), g.technique_id))
         
         genomes.append(Genome(
             id=group_info["ext_id"],
