@@ -1,0 +1,9 @@
+pydantic>=2.0
+sqlalchemy>=2.0
+numpy
+scipy
+scikit-learn
+rich
+pytest
+requests
+stix2
