@@ -1,17 +1,5 @@
 # CyberPhylogeny: A Bio-Inspired Framework for Reconstructing Evolutionary Relationships of Cyberattacks
 
-```text
-                Root Ancestor (e.g., APT29)
-                            │
-               ┌────────────┴────────────┐
-               │                         │
-            Family A                  Family B
-               │                         │
-          Attack Variant 1          Attack Variant 2
-               │
-          Ongoing Attack
-```
-
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![Cybersecurity](https://img.shields.io/badge/Domain-Cybersecurity-red)]()
 [![Bioinformatics](https://img.shields.io/badge/Domain-Bioinformatics-green)]()
