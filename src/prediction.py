@@ -21,7 +21,7 @@ class PredictionEngine:
     def predict_next(self, current_sequence: List[str], top_k: int = 5) -> List[Tuple[Gene, float, float]]:
         """
         Probabilistic Prediction Engine.
-        Uses Sliding Window Suffix Alignment and Distance-Weighted Voting.
+        Uses Suffix Sequence Matching and Distance-Weighted Voting.
         Returns: [(Gene, Probability Percentage, Confidence Multiplier)]
         """
         if not current_sequence:
@@ -35,7 +35,7 @@ class PredictionEngine:
             if len(seq) <= 1:
                 continue
                 
-            # SLIDING WINDOW ALIGNMENT
+            # SEQUENCE ALIGNMENT (Local)
             # Find the minimum mutation distance between the ongoing sequence 
             # and ANY continuous subsequence of the same length in the historical genome.
             min_dist = float('inf')

@@ -164,29 +164,33 @@ class EvolutionEngine:
                 cost = 0 if seq1[i-1] == seq2[j-1] else 1
                 dp[i][j] = min(dp[i-1][j]+1, dp[i][j-1]+1, dp[i-1][j-1]+cost)
                 
+        mutation_score = 0.0
         aligned = []
         i, j = n, m
         
         while i > 0 or j > 0:
             if i > 0 and j > 0 and seq1[i-1] == seq2[j-1]:
                 gene = descendant.genes[j-1]
-                aligned.append(f"{gene.behavior}: {gene.implementation}")
+                aligned.append(f"                   | {gene.behavior}: {gene.implementation}")
                 i -= 1; j -= 1
             elif i > 0 and j > 0 and dp[i][j] == dp[i-1][j-1] + 1:
+                mutation_score += 1.0
                 old_g = ancestor.genes[i-1]
                 new_g = descendant.genes[j-1]
-                aligned.append(f"{new_g.behavior}: {new_g.implementation} [red]<-- Mutated (from {old_g.implementation})[/red]")
+                aligned.append(f"Type: Substitution | {new_g.behavior}: {new_g.implementation} [red]<-- Mutated (from {old_g.implementation})[/red]")
                 i -= 1; j -= 1
             elif i > 0 and dp[i][j] == dp[i-1][j] + 1:
+                mutation_score += 1.0
                 old_g = ancestor.genes[i-1]
-                aligned.append(f"[strike]{old_g.behavior}: {old_g.implementation}[/strike] [yellow]<-- Dropped[/yellow]")
+                aligned.append(f"Type: Deletion     | [strike]{old_g.behavior}: {old_g.implementation}[/strike] [yellow]<-- Dropped[/yellow]")
                 i -= 1
             else:
+                mutation_score += 1.0
                 new_g = descendant.genes[j-1]
-                aligned.append(f"{new_g.behavior}: {new_g.implementation} [green]<-- New Gene[/green]")
+                aligned.append(f"Type: Insertion    | {new_g.behavior}: {new_g.implementation} [green]<-- New Gene[/green]")
                 j -= 1
                 
-        return aligned[::-1]
+        return aligned[::-1], mutation_score
 
     def build_terminal_tree(self, family_genomes: List[Genome]) -> "rich.tree.Tree":
         from rich.tree import Tree
@@ -245,7 +249,8 @@ class EvolutionEngine:
                 current_branch = root_tree.add(label)
                 
                 # Get annotated genes compared to parent
-                annotated_genes = self._get_aligned_genes(parent_genome, genome)
+                annotated_genes, mutation_score = self._get_aligned_genes(parent_genome, genome)
+                current_branch.add(f"[bold red]Mutation Score: {mutation_score}[/bold red]")
                 for line in annotated_genes:
                     current_branch.add(line)
                     

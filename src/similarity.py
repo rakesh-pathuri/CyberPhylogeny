@@ -9,7 +9,7 @@ from .models import Genome
 console = Console()
 
 def levenshtein_distance(seq1: List[str], seq2: List[str]) -> int:
-    """Calculates the minimum edit distance between two Gene sequences."""
+    """Calculates the minimum edit distance between two Gene sequences (Needleman-Wunsch style sequence alignment)."""
     if len(seq1) < len(seq2):
         return levenshtein_distance(seq2, seq1)
 
@@ -53,7 +53,7 @@ class SimilarityEngine:
         
     def run_multi_stage_pipeline(self, eps: float = 0.6, min_samples: int = 2):
         """Runs the 3-stage classification pipeline to classify genomes and mathematically handle orphans."""
-        console.print(f"\n[bold green]--- STAGE 1: Strict Evolutionary Alignment (Global Levenshtein) ---[/bold green]")
+        console.print(f"\n[bold green]--- STAGE 1: Sequence Alignment (Needleman-Wunsch) ---[/bold green]")
         families_s1 = self._cluster_with_metric(self.genomes, metric_type="levenshtein_genes", eps=eps, min_samples=min_samples)
         
         # Extract orphans from Stage 1 (label -1)
