@@ -25,6 +25,14 @@ This project sits at the intersection of computational biology, data science, an
 2. **Unsupervised Machine Learning**: Deploying DBSCAN density-based clustering to automatically discover evolutionary families from raw behavioral data.
 3. **Probabilistic Prediction**: Utilizing Distance-Weighted K-Nearest Neighbors (KNN) to mathematically predict the highest probability next-steps of an ongoing attack.
 
+## The Novel Contribution (Why not just compare ATT&CK sequences?)
+
+If a researcher asks, *"MITRE ATT&CK already exists. Why can't we just compare ATT&CK sequences?"*, the answer lies in the difference between **pattern matching** and **evolutionary reconstruction**:
+
+1. **From Similarity to Ancestry:** Traditional systems compare two lists of ATT&CK techniques and say "These are 85% similar." CyberPhylogeny uses Minimum Spanning Trees (MST) to explain *why* they are similar: *"Attack B evolved from Attack A, and here is the precise evolutionary branch where the mutation occurred."*
+2. **Biological Abstraction over Flat Strings:** Comparing raw MITRE IDs (e.g., `T1059.001` vs `T1059.006`) treats them as entirely distinct strings. By introducing the 3-tier Genetic hierarchy (`Behavior -> Implementation -> Technique ID`), CyberPhylogeny mathematically understands that swapping PowerShell for Python is *not* a new attack—it is merely a **mutation** of the exact same underlying "Execution" gene.
+3. **Predictive Alignment vs. Reactive Detection:** CTI tools use ATT&CK to describe what an attacker *did*. CyberPhylogeny uses DNA suffix alignment to predict what the attacker *will do next*, based on the evolutionary history of their specific attack family.
+
 ## Project Architecture (Multi-Stage Pipeline)
 
 ```mermaid
