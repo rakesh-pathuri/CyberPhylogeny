@@ -134,16 +134,16 @@ python main.py tree 24
 ```text
 Phylogenetic Tree for Family 24 (2 variants)
 Evolutionary Tree
-`-- Ancestor: S1135 (MultiLayer Wiper)
-    +-- execution: Scheduled Task
-    +-- execution: Windows Command Shell
-    `-- Descendant: S0697 (HermeticWiper)
-        +-- execution: Scheduled Task
-        +-- execution: Windows Command Shell
-        +-- execution: Native API <-- New Gene
-        +-- persistence: Windows Service <-- New Gene
-        +-- stealth: Compression <-- Mutated (from Stored Data Manipulation)
-        `-- defense-impairment: Clear Windows Event Logs
+├── Ancestor: S1135 (MultiLayer Wiper)
+│   ├── execution: Scheduled Task
+│   └── execution: Windows Command Shell
+└── Descendant: S0697 (HermeticWiper) (Evolved from S1135)
+    ├── execution: Scheduled Task
+    ├── execution: Windows Command Shell
+    ├── execution: Native API <-- New Gene
+    ├── persistence: Windows Service <-- New Gene
+    ├── stealth: Compression <-- Mutated (from Stored Data Manipulation)
+    └── defense-impairment: Clear Windows Event Logs
 
 Interactive visual graph saved to: family_S1135_phylogeny.html
 ```

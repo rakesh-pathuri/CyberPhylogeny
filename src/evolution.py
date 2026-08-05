@@ -245,13 +245,16 @@ class EvolutionEngine:
                 visited.add(v)
                 children[u].append(v)
                 
-        # Recursive tree builder
-        def add_branches(node_idx, parent_tree, is_root=False):
+        root_tree = Tree(f"[bold white]Evolutionary Tree[/bold white]")
+        
+        # We traverse the tree but add EVERY genome directly to the root_tree
+        # to prevent deep nesting, which makes it look like descendants are just genes.
+        def traverse_and_add(node_idx, is_root=False):
             genome = family_genomes[node_idx]
             
             if is_root:
                 label = f"[bold cyan]Ancestor: {genome.id} ({genome.name})[/bold cyan]"
-                current_branch = parent_tree.add(label)
+                current_branch = root_tree.add(label)
                 for gene in genome.genes:
                     current_branch.add(f"{gene.behavior}: {gene.implementation}")
             else:
@@ -262,18 +265,18 @@ class EvolutionEngine:
                         parent_idx = p
                         break
                         
-                label = f"[bold magenta]Descendant: {genome.id} ({genome.name})[/bold magenta]"
-                current_branch = parent_tree.add(label)
+                parent_genome = family_genomes[parent_idx]
+                label = f"[bold magenta]Descendant: {genome.id} ({genome.name})[/bold magenta] [dim](Evolved from {parent_genome.id})[/dim]"
+                current_branch = root_tree.add(label)
                 
                 # Get annotated genes compared to parent
-                annotated_genes = self._get_aligned_genes(family_genomes[parent_idx], genome)
+                annotated_genes = self._get_aligned_genes(parent_genome, genome)
                 for line in annotated_genes:
                     current_branch.add(line)
                     
             # Recurse for children
             for child_idx in children[node_idx]:
-                add_branches(child_idx, current_branch, is_root=False)
+                traverse_and_add(child_idx, is_root=False)
                 
-        root_tree = Tree(f"[bold white]Evolutionary Tree[/bold white]")
-        add_branches(root_idx, root_tree, is_root=True)
+        traverse_and_add(root_idx, is_root=True)
         return root_tree
