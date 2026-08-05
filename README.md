@@ -87,7 +87,31 @@ graph TD
 
 ### Command Line Interface & Examples
 
-**1. Multi-Stage Clustering** 
+**1. Inspect an Attack Genome (NEW)**
+Pulls the complete behavioral genetic sequence and Threat Intel profile of a specific attack.
+```bash
+python main.py genome S0697
+```
+*Example Output:*
+```text
+Genome Profile: HermeticWiper (S0697)
+[HermeticWiper](https://attack.mitre.org/software/S0697) is a data wiper that 
+has been used since at least early 2022, primarily against Ukraine...
+
+Genetic Sequence (26 Genes)
++-----------------------------------------------------------------------------+
+| Index | Technique ID    | Implementation               | Behavior           |
+|-------+-----------------+------------------------------+--------------------|
+| 1     | T1053.005       | Scheduled Task               | execution          |
+| 2     | T1059.003       | Windows Command Shell        | execution          |
+| 3     | T1106           | Native API                   | execution          |
+| 4     | T1569.002       | Service Execution            | execution          |
+| 5     | T1543.003       | Windows Service              | persistence        |
+| ...   | ...             | ...                          | ...                |
++-----------------------------------------------------------------------------+
+```
+
+**2. Multi-Stage Clustering** 
 Groups attacks into families based on structural similarity.
 ```bash
 python main.py cluster --eps 0.6 --min_samples 2
