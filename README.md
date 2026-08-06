@@ -73,7 +73,7 @@ graph TD
     
     %% Evolution Pipeline (Centerpiece)
     C -->|Minimum Spanning Tree| I(Phylogenetic Tree)
-    I -->|Mutation Score Tracker| J(Evolution Analysis)
+    I -->|Mutation Distance Tracker| J(Evolution Analysis)
     
     %% Prediction Pipeline
     F[Ongoing Attack Sequence] -->|Smith-Waterman Alignment| G(KNN Prediction Engine)
