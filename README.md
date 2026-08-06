@@ -142,9 +142,11 @@ python main.py cluster --eps 0.6 --min_samples 2
 ```
 
 **3. Phylogenetic Terminal Tree (Core Feature)** 
-Prints a branching evolutionary tree with Mutation Scores.
+Prints a branching evolutionary tree. Supports two algorithms:
+- `mst` (Maximum Parsimony): Default. Traces exact technique mutations between known attacks.
+- `upgma` (Unweighted Pair Group Method with Arithmetic Mean): Generates a true hierarchical dendrogram with hypothetical common ancestors.
 ```bash
-python main.py tree 24
+python main.py tree 24 --algo mst
 ```
 *Example Output:*
 ```text

@@ -131,8 +131,12 @@ class EvolutionEngine:
             elif i > 0 and j > 0 and dp[i][j] < dp[i-1][j] + 1.0 and dp[i][j] < dp[i][j-1] + 1.0:
                 old_g = ancestor.genes[i-1]
                 new_g = descendant.genes[j-1]
-                mutation_score += 0.5 if old_g.tactic == new_g.tactic else 1.0
-                aligned.append(f"Type: Substitution | \\[{new_g.tactic}] {new_g.behavior}: {new_g.implementation} [red]<-- Mutated (from {old_g.implementation})[/red]")
+                if old_g.tactic == new_g.tactic:
+                    mutation_score += 0.5
+                    aligned.append(f"Type: Substitution | \\[{new_g.tactic}] {new_g.behavior}: {new_g.implementation} [red]<-- Mutated (from {old_g.implementation})[/red]")
+                else:
+                    mutation_score += 1.0
+                    aligned.append(f"Type: Tactic Shift | \\[{new_g.tactic}] {new_g.behavior}: {new_g.implementation} [red]<-- Tactic Shift (from \\[{old_g.tactic}] {old_g.implementation})[/red]")
                 i -= 1; j -= 1
             elif i > 0 and dp[i][j] == dp[i-1][j] + 1:
                 mutation_score += 1.0
@@ -214,4 +218,95 @@ class EvolutionEngine:
                 traverse_and_add(child_idx, is_root=False)
                 
         traverse_and_add(root_idx, is_root=True)
+        return root_tree
+
+    def build_upgma_tree(self, family_genomes: List[Genome]) -> "rich.tree.Tree":
+        from rich.tree import Tree
+        n = len(family_genomes)
+        if n == 0:
+            return Tree("Empty Family")
+        if n == 1:
+            g = family_genomes[0]
+            t = Tree(f"[bold cyan]Genome: {g.id} ({g.name})[/bold cyan]")
+            return t
+            
+        # Initialize distance matrix
+        dist_matrix = np.zeros((n, n))
+        for i in range(n):
+            for j in range(i+1, n):
+                d = sequence_alignment_distance(family_genomes[i].genes, family_genomes[j].genes, is_tactic=False)
+                dist_matrix[i][j] = dist_matrix[j][i] = d
+
+        # UPGMA state tracking
+        clusters = {i: {"id": i, "genomes": [family_genomes[i]], "height": 0.0, "children": []} for i in range(n)}
+        active_clusters = list(range(n))
+        next_cluster_id = n
+        
+        while len(active_clusters) > 1:
+            # Find min distance
+            min_dist = float('inf')
+            best_pair = None
+            for i_idx in range(len(active_clusters)):
+                for j_idx in range(i_idx + 1, len(active_clusters)):
+                    u = active_clusters[i_idx]
+                    v = active_clusters[j_idx]
+                    if dist_matrix[u][v] < min_dist:
+                        min_dist = dist_matrix[u][v]
+                        best_pair = (u, v)
+            
+            u, v = best_pair
+            
+            # Create new cluster
+            new_height = min_dist / 2.0
+            new_cluster = {
+                "id": next_cluster_id, 
+                "genomes": clusters[u]["genomes"] + clusters[v]["genomes"],
+                "height": new_height,
+                "children": [clusters[u], clusters[v]]
+            }
+            clusters[next_cluster_id] = new_cluster
+            
+            # Update distance matrix (we will just grow the matrix)
+            dist_matrix = np.pad(dist_matrix, ((0, 1), (0, 1)), mode='constant')
+            
+            size_u = len(clusters[u]["genomes"])
+            size_v = len(clusters[v]["genomes"])
+            size_new = size_u + size_v
+            
+            for c in active_clusters:
+                if c != u and c != v:
+                    d = (size_u * dist_matrix[u][c] + size_v * dist_matrix[v][c]) / size_new
+                    dist_matrix[next_cluster_id][c] = dist_matrix[c][next_cluster_id] = d
+                    
+            active_clusters.remove(u)
+            active_clusters.remove(v)
+            active_clusters.append(next_cluster_id)
+            next_cluster_id += 1
+            
+        root_cluster = clusters[active_clusters[0]]
+        
+        # Build rich tree
+        root_tree = Tree(f"[bold white]UPGMA Dendrogram (Root Height: {root_cluster['height']:.2f})[/bold white]")
+        
+        def traverse(node, tree_node, parent_height):
+            branch_len = parent_height - node["height"]
+            
+            if len(node["children"]) == 0:
+                # Leaf node
+                g = node["genomes"][0]
+                label = f"[bold cyan]{g.id} ({g.name})[/bold cyan] [dim](branch: {branch_len:.2f})[/dim]"
+                leaf = tree_node.add(label)
+                for gene in g.genes:
+                    leaf.add(f"\\[{gene.tactic}] {gene.behavior}: {gene.implementation}")
+            else:
+                # Internal node
+                label = f"[bold yellow]Common Ancestor[/bold yellow] [dim](height: {node['height']:.2f}, branch: {branch_len:.2f})[/dim]"
+                new_branch = tree_node.add(label)
+                    
+                for child in node["children"]:
+                    traverse(child, new_branch, node["height"])
+                    
+        for child in root_cluster["children"]:
+            traverse(child, root_tree, root_cluster["height"])
+            
         return root_tree

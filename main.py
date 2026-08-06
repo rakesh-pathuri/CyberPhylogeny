@@ -153,8 +153,8 @@ def cmd_genome(attack_id: str):
         
     console.print(table)
 
-def cmd_tree(eps: float, min_samples: int, target_family: int):
-    """Generates a Mermaid.js Phylogenetic Tree for a family."""
+def cmd_tree(eps: float, min_samples: int, target_family: int, algo: str):
+    """Generates a Phylogenetic Tree for a family."""
     data = fetch_mitre_data()
     _, genomes = parse_mitre_to_genomes(data)
     
@@ -169,14 +169,17 @@ def cmd_tree(eps: float, min_samples: int, target_family: int):
     evo_engine = EvolutionEngine(genomes)
     
     console.print(f"\n[bold cyan]Phylogenetic Tree for Family {target_family} ({len(family_genomes)} variants)[/bold cyan]")
+    console.print(f"[dim]Algorithm: {algo.upper()}[/dim]")
     
-    # 1. Print the rich terminal tree
-    terminal_tree = evo_engine.build_terminal_tree(family_genomes)
-    console.print(terminal_tree)
-    
-    # Note instead of Legend Table
-    console.print("[dim italic]* Score Calculation: 0.0 (Exact Match) | 0.5 (Substitution within same Tactic) | 1.0 (Insertion / Deletion / Cross-Tactic Substitution)[/dim italic]")
-    console.print()
+    if algo.lower() == "upgma":
+        tree = evo_engine.build_upgma_tree(family_genomes)
+        console.print(tree)
+    else:
+        tree = evo_engine.build_terminal_tree(family_genomes)
+        console.print(tree)
+        # Note instead of Legend Table for MST only
+        console.print("[dim italic]* Score Calculation: 0.0 (Exact Match) | 0.5 (Substitution within same Tactic) | 1.0 (Insertion / Deletion / Cross-Tactic Substitution)[/dim italic]")
+        console.print()
     
 
 
@@ -200,6 +203,7 @@ if __name__ == "__main__":
     # 4. Tree
     parser_tree = subparsers.add_parser("tree", help="Build a Phylogenetic Tree for a specific family")
     parser_tree.add_argument("family", type=str, help="Family ID to trace (e.g., '24')")
+    parser_tree.add_argument("--algo", type=str, default="mst", choices=["mst", "upgma"], help="Algorithm to build tree (mst or upgma)")
     parser_tree.add_argument("--eps", type=float, default=0.6, help="DBSCAN epsilon used for clustering")
     parser_tree.add_argument("--min_samples", type=int, default=2, help="Minimum samples used for clustering")
     
@@ -217,7 +221,7 @@ if __name__ == "__main__":
     elif args.command == "cluster":
         cmd_cluster(args.eps, args.min_samples)
     elif args.command == "tree":
-        cmd_tree(args.eps, args.min_samples, int(args.family))
+        cmd_tree(args.eps, args.min_samples, int(args.family), args.algo)
     elif args.command == "predict":
         cmd_predict(args.sequence, args.k)
 
