@@ -6,23 +6,33 @@ from rich.table import Table
 
 from src.database import init_db
 from src.parser import fetch_mitre_data, parse_mitre_to_genomes
-from src.ingest import save_to_db
+from src.ingest import save_to_db, load_from_db
 from src.similarity import SimilarityEngine
 from src.prediction import PredictionEngine
 from src.evolution import EvolutionEngine
 
 console = Console()
 
-def cmd_ingest():
+def get_cached_genomes():
     engine, session = init_db()
-    data = fetch_mitre_data()
-    genes, genomes = parse_mitre_to_genomes(data)
-    save_to_db(session, genes, genomes)
+    
+    # Try to load from DB
+    _, genomes = load_from_db(session)
+    
+    # If empty, fetch from web and parse
+    if not genomes:
+        data = fetch_mitre_data()
+        genes, genomes = parse_mitre_to_genomes(data)
+        save_to_db(session, genes, genomes)
+        
+    return genomes
+
+def cmd_ingest():
+    console.print("[yellow]The 'ingest' command is deprecated. The system now automatically caches genomes on first run.[/yellow]")
+
 
 def cmd_cluster(eps: float, min_samples: int):
-    # For this prototype we'll just re-parse in memory instead of DB lookup for simplicity
-    data = fetch_mitre_data()
-    _, genomes = parse_mitre_to_genomes(data)
+    genomes = get_cached_genomes()
     
     sim_engine = SimilarityEngine(genomes)
     f1, f2, f3, score_s1 = sim_engine.run_multi_stage_pipeline(eps, min_samples)
@@ -73,8 +83,7 @@ def cmd_cluster(eps: float, min_samples: int):
 
 def cmd_evolution(eps: float, min_samples: int, target_family: int):
     """Clusters the attacks, then traces mutations within a specific family."""
-    data = fetch_mitre_data()
-    _, genomes = parse_mitre_to_genomes(data)
+    genomes = get_cached_genomes()
     
     sim_engine = SimilarityEngine(genomes)
     families, _ = sim_engine._cluster_with_metric(genomes, metric_type="alignment_genes", eps=eps, min_samples=min_samples)
@@ -99,8 +108,7 @@ def cmd_evolution(eps: float, min_samples: int, target_family: int):
 
 def cmd_predict(sequence_str: str, top_k: int = 5):
     """Predicts the next behavior using KNN and Sliding Window Suffix Alignment."""
-    data = fetch_mitre_data()
-    _, genomes = parse_mitre_to_genomes(data)
+    genomes = get_cached_genomes()
     
     seq = [s.strip() for s in sequence_str.split(',')]
     
@@ -143,8 +151,7 @@ def cmd_predict(sequence_str: str, top_k: int = 5):
 
 def cmd_genome(attack_id: str):
     """Displays the genome sequence for a specific attack ID."""
-    data = fetch_mitre_data()
-    _, genomes = parse_mitre_to_genomes(data)
+    genomes = get_cached_genomes()
     
     target = next((g for g in genomes if g.id.lower() == attack_id.lower()), None)
     if not target:
@@ -230,8 +237,7 @@ def cmd_genome(attack_id: str):
 
 def cmd_tree(eps: float, min_samples: int, target_family: int, algo: str):
     """Generates a Phylogenetic Tree for a family."""
-    data = fetch_mitre_data()
-    _, genomes = parse_mitre_to_genomes(data)
+    genomes = get_cached_genomes()
     
     sim_engine = SimilarityEngine(genomes)
     families, _ = sim_engine._cluster_with_metric(genomes, metric_type="alignment_genes", eps=eps, min_samples=min_samples)
@@ -255,8 +261,7 @@ def cmd_tree(eps: float, min_samples: int, target_family: int, algo: str):
 
 def cmd_diff(ancestor_id: str, descendant_id: str):
     """Shows tactic-grouped mutations between two attacks (like git diff)."""
-    data = fetch_mitre_data()
-    _, genomes = parse_mitre_to_genomes(data)
+    genomes = get_cached_genomes()
     
     ancestor = next((g for g in genomes if g.id.lower() == ancestor_id.lower()), None)
     descendant = next((g for g in genomes if g.id.lower() == descendant_id.lower()), None)
@@ -286,8 +291,7 @@ def cmd_diff(ancestor_id: str, descendant_id: str):
 
 def cmd_ancestry(attack_id: str):
     """Traces the evolutionary ancestry of a specific attack back to its root."""
-    data = fetch_mitre_data()
-    _, genomes = parse_mitre_to_genomes(data)
+    genomes = get_cached_genomes()
     
     target = next((g for g in genomes if g.id.lower() == attack_id.lower()), None)
     if not target:

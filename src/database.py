@@ -10,6 +10,7 @@ class DBGenome(Base):
     id = Column(String, primary_key=True) # e.g., 'G0016'
     name = Column(String, nullable=False)
     description = Column(Text)
+    created = Column(String) # Store ISO formatted datetime string
     
     # Ordered relationship to genes
     genes = relationship("DBGenomeGene", back_populates="genome", order_by="DBGenomeGene.sequence_order", cascade="all, delete-orphan")
@@ -17,10 +18,13 @@ class DBGenome(Base):
 class DBGene(Base):
     __tablename__ = 'genes'
     
-    id = Column(String, primary_key=True) # e.g., 'T1003'
-    name = Column(String, nullable=False)
-    tactic = Column(String, nullable=False)
-    description = Column(Text)
+    id = Column(String, primary_key=True) # Hash or unique ID for the transition
+    source_technique_id = Column(String, nullable=False)
+    target_technique_id = Column(String, nullable=False)
+    source_implementation = Column(String, nullable=False)
+    target_implementation = Column(String, nullable=False)
+    source_tactic = Column(String, nullable=False)
+    target_tactic = Column(String, nullable=False)
 
 class DBGenomeGene(Base):
     """Association table with sequence ordering."""

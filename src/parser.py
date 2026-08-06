@@ -32,7 +32,7 @@ def get_kill_chain_sort_key(tactic_name: str) -> int:
 
 def fetch_mitre_data() -> dict:
     """Fetches the latest MITRE ATT&CK Enterprise STIX JSON."""
-    console.print("[cyan]Loading cached ATT&CK Genome Repository...[/cyan]")
+    console.print("[cyan]Fetching fresh ATT&CK Genome Repository from MITRE...[/cyan]")
     response = requests.get(MITRE_URL)
     response.raise_for_status()
     return response.json()
@@ -154,4 +154,11 @@ def parse_mitre_to_genomes(data: dict) -> Tuple[List[Gene], List[Genome]]:
             genes=transition_genes
         ))
         
-    return [], genomes
+    # Extract all unique genes
+    all_genes_set = {}
+    for gnm in genomes:
+        for g in gnm.genes:
+            gene_id = f"{g.source_technique_id}->{g.target_technique_id}"
+            all_genes_set[gene_id] = g
+            
+    return list(all_genes_set.values()), genomes

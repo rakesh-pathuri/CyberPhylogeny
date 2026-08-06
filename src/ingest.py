@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Tuple
+from datetime import datetime
 from rich.console import Console
 
 from .models import Gene, Genome
@@ -13,9 +14,18 @@ def save_to_db(session: Session, genes: List[Gene], genomes: List[Genome]):
     
     # Insert Genes
     for g in genes:
-        db_gene = session.query(DBGene).filter_by(id=g.id).first()
+        gene_id = f"{g.source_technique_id}->{g.target_technique_id}"
+        db_gene = session.query(DBGene).filter_by(id=gene_id).first()
         if not db_gene:
-            db_gene = DBGene(id=g.id, name=g.name, tactic=g.tactic, description=g.description)
+            db_gene = DBGene(
+                id=gene_id, 
+                source_technique_id=g.source_technique_id,
+                target_technique_id=g.target_technique_id,
+                source_implementation=g.source_implementation,
+                target_implementation=g.target_implementation,
+                source_tactic=g.source_tactic,
+                target_tactic=g.target_tactic
+            )
             session.add(db_gene)
     
     session.commit()
@@ -24,17 +34,64 @@ def save_to_db(session: Session, genes: List[Gene], genomes: List[Genome]):
     for gnm in genomes:
         db_genome = session.query(DBGenome).filter_by(id=gnm.id).first()
         if not db_genome:
-            db_genome = DBGenome(id=gnm.id, name=gnm.name, description=gnm.description)
+            db_genome = DBGenome(
+                id=gnm.id, 
+                name=gnm.name, 
+                description=gnm.description,
+                created=gnm.created.isoformat()
+            )
             session.add(db_genome)
             
             # Insert sequence
             for idx, gene in enumerate(gnm.genes):
                 db_link = DBGenomeGene(
                     genome_id=gnm.id,
-                    gene_id=gene.id,
+                    gene_id=f"{gene.source_technique_id}->{gene.target_technique_id}",
                     sequence_order=idx
                 )
                 session.add(db_link)
     
     session.commit()
     console.print("[green]Successfully populated database![/green]")
+
+def load_from_db(session: Session) -> Tuple[List[Gene], List[Genome]]:
+    """Loads parsed Genes and Genomes from the SQLite database."""
+    db_genomes = session.query(DBGenome).all()
+    if not db_genomes:
+        return [], []
+        
+    console.print(f"[cyan]Loading {len(db_genomes)} Genomes from local DB cache...[/cyan]")
+    
+    genomes = []
+    all_genes = []
+    
+    # Load all genes to cache
+    db_genes = session.query(DBGene).all()
+    gene_map = {}
+    for dbg in db_genes:
+        g = Gene(
+            source_technique_id=dbg.source_technique_id,
+            target_technique_id=dbg.target_technique_id,
+            source_implementation=dbg.source_implementation,
+            target_implementation=dbg.target_implementation,
+            source_tactic=dbg.source_tactic,
+            target_tactic=dbg.target_tactic
+        )
+        gene_map[dbg.id] = g
+        all_genes.append(g)
+        
+    for dbg in db_genomes:
+        # DBGenomeGene automatically orders by sequence_order
+        sequence = []
+        for link in dbg.genes:
+            sequence.append(gene_map[link.gene_id])
+            
+        genomes.append(Genome(
+            id=dbg.id,
+            name=dbg.name,
+            description=dbg.description,
+            created=datetime.fromisoformat(dbg.created) if dbg.created else datetime.now(),
+            genes=sequence
+        ))
+        
+    return all_genes, genomes
