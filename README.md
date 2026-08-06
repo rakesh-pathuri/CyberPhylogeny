@@ -19,40 +19,38 @@ This framework was built to explore the following open questions in proactive cy
 
 ## The Biological Mapping
 
-CyberPhylogeny maps standard cybersecurity ideas into a 4-tier biological ontology:
+CyberPhylogeny maps standard cybersecurity ideas into a 4-tier biological ontology. To make a "gene" computationally meaningful rather than just a metadata tag, we define it by its function, inputs, and outputs:
 
-- **Gene:** A single atomic action in an attack.
+- **Gene:** A specific, atomic operation in an attack sequence.
   ```text
-  Tactic (e.g., Credential Access)
-      ↓
-  Behavior (e.g., OS Credential Dumping)
-      ↓
-  Implementation (e.g., LSASS Memory)
-      ↓
-  MITRE Technique (e.g., T1003.001)
+  Function (Tactic)             → Credential Access
+  Inputs/Outputs (Behavior)     → OS Credential Dumping
+  Execution (Implementation)    → LSASS Memory
+  MITRE ID (Reference)          → T1003.001
   ```
-- **Genome:** The ordered sequence of Genes that makes up a complete cyberattack.
+- **Genome:** The ordered sequence of Genes that makes up a complete cyberattack. While modern attacks may involve branching or retries, an individual **execution trace** (a specific instance of an attack) is a linear temporal path. The Genome models this trace.
 - **Evolutionary Family:** A group of Genomes that share a common ancestor.
-- **Phylogenetic Tree:** A branching graph showing exactly how a new attack evolved from an older one.
+- **Phylogenetic Tree:** A branching graph constructed using **Maximum Parsimony** (approximated via Minimum Spanning Trees) to infer the most likely evolutionary lineage by minimizing the total number of required mutations.
 
-## Core Concepts
+## Formalization & Core Concepts
 
-This research framework relies on the following core concepts to model attacks:
+To elevate this framework beyond a heuristic analogy, we rely on formal mathematical definitions:
 
-* **Genome**: The complete, ordered sequence of genes (techniques) that makes up an entire cyberattack.
-* **Distance**: How different two genomes are from each other. Instead of just checking if they match exactly, we use a biological "Weighted Sequence Alignment" algorithm to score them based on how closely related their tactics and behaviors are. The **Score Calculation** is as follows: `0.0` for an Exact Match, `0.5` for a Substitution within the same Tactic, and `1.0` for an Insertion, Deletion, or cross-Tactic Substitution.
-* **Prediction**: Using a biological algorithm called "Smith-Waterman" to find the strongest matching patterns in historical attacks, which allows us to predict what the attacker might do next.
-* **Mutation**: The exact changes an attacker made to evolve their attack (e.g., Inserting a new technique, Deleting an old one, or Substituting one technique for another).
-* **Family**: A group of attacks (genomes) that are grouped together because their "Distance" is very small, meaning they likely share the same origin or threat actor.
+* **Genome ($G$)**: An ordered sequence of computationally meaningful genes: $G = [g_1, g_2, \dots, g_n]$.
+* **Mutation ($\Delta(G_1, G_2)$)**: The specific genetic changes (Insertions, Deletions, Substitutions) required to transform $G_1$ into $G_2$.
+* **Distance ($D(G_1, G_2)$)**: The tactical distance between two genomes. Instead of binary pattern matching, we calculate evolutionary distance using a biological **Weighted Sequence Alignment** algorithm. 
+  * *Score Calculation:* `0.0` (Exact Match), `0.5` (Same-Tactic Substitution), `1.0` (Insertion/Deletion/Cross-Tactic Substitution).
+* **Prediction**: Using the **Smith-Waterman** algorithm for optimal local sequence alignment to generate distance metrics, which are then fed into a **k-Nearest Neighbors (KNN)** probabilistic prediction engine to estimate the attacker's next move.
+* **Family ($F$)**: A density-based cluster of genomes where the distance $D$ is less than a threshold $\epsilon$: $F = \{ G \mid D(G_1, G_2) < \epsilon \}$.
 
 ## The Novel Contribution: Beyond Pattern Matching
 
-Standard Threat Intelligence tools use MITRE ATT&CK to describe what an attacker did. CyberPhylogeny introduces a new approach by shifting focus from **pattern matching** to **evolutionary reconstruction**:
+Why model attacks as evolving genomes instead of simply comparing ATT&CK sequences? Standard Threat Intelligence tools fail when faced with polymorphism because they treat a substitution of `PowerShell` to `Python` as a 100% miss. CyberPhylogeny introduces a new approach by shifting focus from **similarity** to **ancestry**:
 
-1. **From Similarity to Ancestry:** Traditional systems compare two lists of techniques and give a simple score (e.g., "85% match"). CyberPhylogeny uses Minimum Spanning Trees (MST) to show *why* they are similar: *"Attack B evolved from Attack A, and here is the exact branch where it mutated."*
-2. **Biological Abstraction:** Comparing raw MITRE IDs (like `T1059.001` vs `T1059.006`) treats them as completely different strings. By using the 4-part Gene hierarchy, CyberPhylogeny mathematically understands that changing PowerShell to Python is *not* a new attack—it is just a **mutation** of the same underlying "Execution" gene.
-3. **Chronological Evolution vs. Heuristics:** The system parses exact timestamps from threat intelligence reports to map out the evolutionary family tree, tracing real time rather than guessing based on sequence length.
-4. **Predictive Alignment vs. Reactive Detection:** CTI tools are reactive (they look at the past). CyberPhylogeny utilizes the **Smith-Waterman** local alignment algorithm to accurately predict the attacker's next move, even if they skip or add new steps mid-attack.
+1. **From Similarity to Ancestry:** Traditional systems compare two lists of techniques and give a similarity score (e.g., "85% match"). CyberPhylogeny reconstructs *ancestry*: "Attack B evolved from Attack A, and here is the exact branch where it mutated."
+2. **Biological Abstraction:** By treating techniques as computational Genes, CyberPhylogeny mathematically understands that changing PowerShell to Python is *not* a new attack—it is just a tactical **mutation** preserving the same underlying function.
+3. **Maximum Parsimony vs. Chronology:** Real evolution is driven by accumulating mutations, not just the passage of time. CyberPhylogeny uses chronological timestamps only as a *directional constraint* (a descendant cannot predate its ancestor) while relying on **Maximum Parsimony** (MST) to determine the actual evolutionary lineage.
+4. **Predictive Alignment:** CTI tools are reactive. CyberPhylogeny utilizes local sequence alignment (Smith-Waterman) to accurately align ongoing, incomplete attack sequences against historical genomes, which feeds our KNN engine to predict the next move even if the attacker skips steps.
 5. **Algorithmic Scalability:** Features a custom **MinHash LSH** pass to instantly filter and bucket genomes before running the heavy comparison math, making the framework extremely fast.
 
 ## Project Architecture (Multi-Stage Pipeline)
@@ -86,10 +84,10 @@ graph TD
 
 To validate the framework's efficacy against traditional CTI, CyberPhylogeny utilizes the following evaluation framework:
 * **Similarity Accuracy**: Benchmarking Sequence Alignment vs raw Jaccard similarity.
-* **Family Reconstruction Accuracy**: Validating cluster purity against known threat actor group overlap (e.g., separating distinct APT29 campaigns).
-* **Prediction Accuracy**: Cross-validating the Smith-Waterman matcher's ability to estimate the next gene in historical data despite active insertions/deletions.
+* **Family Reconstruction Accuracy**: Validating cluster purity against ground truth datasets, including known MITRE ATT&CK Group overlaps and specific APT threat intelligence reports (e.g., isolating distinct APT29 evolutionary branches).
+* **Prediction Accuracy**: Cross-validating the KNN prediction engine's ability to estimate the next gene in historical data despite active insertions/deletions.
 * **Mutation Detection Accuracy**: Tracking how accurately substitutions identify polymorphic malware variants.
-* **Phylogenetic Consistency**: Validating the MST branch structure against temporal cyber threat intelligence reports.
+* **Phylogenetic Consistency**: Validating the Maximum Parsimony tree structure against temporal CTI reports.
 
 ## Installation & Usage
 
