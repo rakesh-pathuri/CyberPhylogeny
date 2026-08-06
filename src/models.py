@@ -49,3 +49,25 @@ class Genome(BaseModel):
     def to_parent_set(self) -> set[str]:
         """Returns unordered set of Parent Technique transitions (Stage 4)."""
         return {f"{g.source_technique_id.split('.')[0]}->{g.target_technique_id.split('.')[0]}" for g in self.genes}
+        
+    def get_behavioral_label(self) -> str:
+        """Generates a concise behavioral label based on unique tactics (e.g., 'Execution + Persistence + C2')."""
+        tactics = []
+        for g in self.genes:
+            if g.source_tactic not in tactics: tactics.append(g.source_tactic)
+            if g.target_tactic not in tactics: tactics.append(g.target_tactic)
+            
+        formatted = []
+        for t in tactics:
+            name = t.replace("-", " ").title()
+            if name == "Command And Control": name = "C2"
+            if name == "Privilege Escalation": name = "PrivEsc"
+            if name == "Defense Impairment": name = "Defense Evasion"
+            formatted.append(name)
+            
+        if not formatted:
+            return "No distinct behaviors"
+            
+        if len(formatted) > 3:
+            return " + ".join(formatted[:3]) + "..."
+        return " + ".join(formatted)

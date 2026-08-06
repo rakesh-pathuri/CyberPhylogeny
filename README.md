@@ -225,12 +225,12 @@ python main.py tree 80 --algo upgma
 Phylogenetic Tree for Family 80 (Stage 4) (4 variants)
 Algorithm: UPGMA
 UPGMA Dendrogram (Root Height: 6.67)
-├── --------------------------------- G1011 (EXOTIC LILY) (branch: 6.67)
-└── ------------ Common Ancestor (height: 4.25, branch: 2.42)
-    ├── --------------------- G0138 (Andariel) (branch: 4.25)
-    └── ----------- Common Ancestor (height: 2.00, branch: 2.25)
-        ├── ---------- G0089 (The White Company) (branch: 2.00)
-        └── ---------- G0005 (APT12) (branch: 2.00)
+├── --------------------------------- G1011 (EXOTIC LILY) (branch: 6.67) [Reconnaissance + Resource Development + Initial Access...]
+└── ------------ Common Ancestor (height: 4.25, branch: 2.42) [Initial Access + Execution]
+    ├── --------------------- G0138 (Andariel) (branch: 4.25) [Reconnaissance + Resource Development + Initial Access...]
+    └── ----------- Common Ancestor (height: 2.00, branch: 2.25) [Initial Access + Execution]
+        ├── ---------- G0089 (The White Company) (branch: 2.00) [Initial Access + Execution + Discovery...]
+        └── ---------- G0005 (APT12) (branch: 2.00) [Initial Access + Execution + C2]
 ```
 
 **4. Mutation Diff (Forensic Report)**
@@ -292,46 +292,46 @@ python main.py ancestry S0527
 *Example Output:*
 ```text
 Ancestry for S0527
-G0004 (Ke3chang)
+G0004 (Ke3chang) [Resource Development + Initial Access + Execution...]
   | (distance = 28.50)
   v
-G0022 (APT3)
+G0022 (APT3) [Initial Access + Execution + Persistence...]
   | (distance = 27.50)
   v
-G0093 (GALLIUM)
+G0093 (GALLIUM) [Resource Development + Initial Access + Execution...]
   | (distance = 18.00)
   v
-G1023 (APT5)
+G1023 (APT5) [Resource Development + Initial Access + Execution...]
   | (distance = 19.50)
   v
-S1122 (Mispadu)
+S1122 (Mispadu) [Initial Access + Execution + Persistence...]
   | (distance = 14.50)
   v
-S0330 (Zeus Panda)
+S0330 (Zeus Panda) [Execution + Persistence + Discovery...]
   | (distance = 13.50)
   v
-S0348 (Cardinal RAT)
+S0348 (Cardinal RAT) [Execution + Persistence + Discovery...]
   | (distance = 11.00)
   v
-S0021 (Derusbi)
+S0021 (Derusbi) [Execution + Discovery + Collection...]
   | (distance = 11.00)
   v
-S0248 (yty)
+S0248 (yty) [Execution + Discovery + Collection...]
   | (distance = 8.50)
   v
-S0161 (XAgentOSX)
+S0161 (XAgentOSX) [Execution + Credential Access + Discovery...]
   | (distance = 5.50)
   v
-S0088 (Kasidet)
+S0088 (Kasidet) [Execution + Persistence + Discovery...]
   | (distance = 5.00)
   v
-S0142 (StreamEx)
+S0142 (StreamEx) [Execution + Persistence + Discovery...]
   | (distance = 5.50)
   v
-S0679 (Ferocious)
+S0679 (Ferocious) [Execution + PrivEsc + Discovery...]
   | (distance = 8.00)
   v
-S0527 (CSPY Downloader)
+S0527 (CSPY Downloader) [Execution + PrivEsc + C2...]
 
 * Ancestry inferred via Maximum Parsimony (Minimum Spanning Tree)
 ```

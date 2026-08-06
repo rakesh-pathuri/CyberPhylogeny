@@ -191,7 +191,8 @@ class EvolutionEngine:
             genome = family_genomes[node_idx]
             
             if is_root:
-                label = f"[bold cyan]Ancestor: {genome.id} ({genome.name})[/bold cyan]"
+                label_text = genome.get_behavioral_label()
+                label = f"[bold cyan]Ancestor: {genome.id} ({genome.name})[/bold cyan] [dim][{label_text}][/dim]"
                 current_branch = root_tree.add(label)
                 for gene in genome.genes:
                     current_branch.add(f"\\[{gene.source_tactic}->{gene.target_tactic}] {gene.source_implementation}->{gene.target_implementation}")
@@ -206,7 +207,8 @@ class EvolutionEngine:
                 parent_genome = family_genomes[parent_idx]
                 # Recompute distance for MST branch length
                 mutation_distance = sequence_alignment_distance(parent_genome.genes, genome.genes, is_string_match=False)
-                label = f"[bold magenta]{genome.id} ({genome.name})[/bold magenta] [dim](+{mutation_distance:.1f})[/dim]"
+                label_text = genome.get_behavioral_label()
+                label = f"[bold magenta]{genome.id} ({genome.name})[/bold magenta] [dim](+{mutation_distance:.1f}) [{label_text}][/dim]"
                 current_branch = root_tree.add(label)
                     
             # Recurse for children
@@ -302,11 +304,13 @@ class EvolutionEngine:
             if len(node["children"]) == 0:
                 # Leaf node
                 g = node["genome"]
-                label = f"[dim]{dashes}[/dim] [bold cyan]{g.id} ({g.name})[/bold cyan] [dim](branch: {branch_len:.2f})[/dim]"
+                label_text = g.get_behavioral_label()
+                label = f"[dim]{dashes}[/dim] [bold cyan]{g.id} ({g.name})[/bold cyan] [dim](branch: {branch_len:.2f}) [{label_text}][/dim]"
                 leaf = tree_node.add(label)
             else:
                 # Internal node
-                label = f"[dim]{dashes}[/dim] [bold yellow]Common Ancestor[/bold yellow] [dim](height: {node['height']:.2f}, branch: {branch_len:.2f})[/dim]"
+                label_text = node["genome"].get_behavioral_label()
+                label = f"[dim]{dashes}[/dim] [bold yellow]Common Ancestor[/bold yellow] [dim](height: {node['height']:.2f}, branch: {branch_len:.2f}) [{label_text}][/dim]"
                 new_branch = tree_node.add(label)
                     
                 for child in node["children"]:

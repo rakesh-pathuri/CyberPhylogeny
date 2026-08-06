@@ -390,7 +390,8 @@ def cmd_ancestry(attack_id: str):
     
     console.print(f"\n[bold cyan]Ancestry for {target.id}[/bold cyan]")
     
-    console.print(f"[bold cyan]{path[0].id} ({path[0].name})[/bold cyan]")
+    root_label = path[0].get_behavioral_label()
+    console.print(f"[bold cyan]{path[0].id} ({path[0].name})[/bold cyan] [dim][{root_label}][/dim]")
     
     for i in range(1, len(path)):
         node = path[i]
@@ -400,7 +401,8 @@ def cmd_ancestry(attack_id: str):
         
         console.print(f"[dim]  | (distance = {d:.2f})[/dim]")
         console.print("[dim]  v[/dim]")
-        console.print(f"[bold magenta]{node.id} ({node.name})[/bold magenta]")
+        label = node.get_behavioral_label()
+        console.print(f"[bold magenta]{node.id} ({node.name})[/bold magenta] [dim][{label}][/dim]")
         
     console.print("\n[dim italic]* Ancestry inferred via Maximum Parsimony (Minimum Spanning Tree)[/dim italic]\n")
     
