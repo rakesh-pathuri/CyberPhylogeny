@@ -173,6 +173,9 @@ def cmd_tree(eps: float, min_samples: int, target_family: int):
     # 1. Print the rich terminal tree
     terminal_tree = evo_engine.build_terminal_tree(family_genomes)
     console.print(terminal_tree)
+    
+    # Note instead of Legend Table
+    console.print("[dim italic]* Cost Model: 0.0 (Exact Match) | 0.5 (Same Tactic, Diff Technique) | 1.0 (Insertion/Deletion/Tactic Shift)[/dim italic]")
     console.print()
     
 
