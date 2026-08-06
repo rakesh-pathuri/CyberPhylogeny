@@ -95,65 +95,7 @@ class EvolutionEngine:
         # Traceback builds the path backwards, so reverse it
         return mutations[::-1]
 
-    def build_phylogenetic_tree(self, family_genomes: List[Genome]) -> str:
-        """
-        Builds a true Phylogenetic Tree (Minimum Spanning Tree) using Prim's algorithm.
-        Returns a Mermaid.js graph string representing the evolutionary branches.
-        """
-        n = len(family_genomes)
-        if n < 2:
-            return "graph TD\n    A[Not enough genomes for a tree]"
-            
-        # 1. Build Pairwise Distance Matrix
-        dist_matrix = np.zeros((n, n))
-        for i in range(n):
-            seq_i = family_genomes[i].genes
-            for j in range(i+1, n):
-                seq_j = family_genomes[j].genes
-                dist = sequence_alignment_distance(seq_i, seq_j, is_tactic=False)
-                dist_matrix[i][j] = dist
-                dist_matrix[j][i] = dist
-                
-        # 2. Prim's Algorithm for MST
-        # Assume the chronologically oldest genome is the root ancestor
-        root_idx = min(range(n), key=lambda idx: family_genomes[idx].created)
-        
-        visited = {root_idx}
-        edges = []
-        
-        while len(visited) < n:
-            min_dist = float('inf')
-            best_edge = None
-            
-            for u in visited:
-                for v in range(n):
-                    if v not in visited:
-                        if dist_matrix[u][v] < min_dist:
-                            min_dist = dist_matrix[u][v]
-                            best_edge = (u, v, dist_matrix[u][v])
-                            
-            if best_edge:
-                u, v, dist = best_edge
-                visited.add(v)
-                edges.append(best_edge)
-                
-        # 3. Generate Mermaid Graph (Text Output)
-        lines = ["graph TD"]
-        for u, v, dist in edges:
-            node_u = f'{family_genomes[u].id}["{family_genomes[u].name}"]'
-            node_v = f'{family_genomes[v].id}["{family_genomes[v].name}"]'
-            lines.append(f"    {node_u} -->|Mutations: {int(dist)}| {node_v}")
-            
-        # Add styles
-        lines.append("\n    classDef ancestor fill:#ff9f1c,stroke:#333,stroke-width:2px,color:#fff;")
-        lines.append("    classDef descendant fill:#2ec4b6,stroke:#333,stroke-width:2px,color:#fff;")
-        lines.append(f"    class {family_genomes[root_idx].id} ancestor;")
-        
-        for v in range(n):
-            if v != root_idx:
-                lines.append(f"    class {family_genomes[v].id} descendant;")
-                
-        return "\n".join(lines)
+
         
     def _get_aligned_genes(self, ancestor: Genome, descendant: Genome) -> List[str]:
         """Runs traceback to generate a formatted list of descendant genes with mutation tags."""

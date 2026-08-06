@@ -175,8 +175,6 @@ def cmd_tree(eps: float, min_samples: int, target_family: int):
     console.print(terminal_tree)
     console.print()
     
-    # 2. Generate the PyVis/Mermaid files in the background
-    evo_engine.build_phylogenetic_tree(family_genomes)
 
 
 
