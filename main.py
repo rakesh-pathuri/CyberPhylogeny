@@ -55,15 +55,21 @@ def cmd_cluster(eps: float, min_samples: int):
         
     # Print Clustering Summary
     console.print("\n[bold cyan]Clustering Summary[/bold cyan]")
-    valid_sizes = [len(f) for lbl, f in f1.items() if lbl != -1]
+    
+    valid_sizes = []
+    for f in [f1, f2, f3]:
+        valid_sizes.extend([len(fam) for lbl, fam in f.items() if lbl != -1])
+        
+    final_noise = len(f3.get(-1, [])) if f3 else len(f2.get(-1, [])) if f2 else len(f1.get(-1, []))
+    
     import numpy as np
     console.print(f"Attacks analyzed : {len(genomes)}")
-    console.print(f"Families found   : {len(valid_sizes)}")
+    console.print(f"Families found   : {len(valid_sizes)} (Across all stages)")
     if valid_sizes:
         console.print(f"Largest family   : {max(valid_sizes)}")
         console.print(f"Median family size: {int(np.median(valid_sizes))}")
-    console.print(f"Noise            : {len(f1.get(-1, []))}")
-    console.print(f"Silhouette Score : {score_s1:.2f}")
+    console.print(f"Final Noise      : {final_noise}")
+    console.print(f"Stage 1 Silhouette: {score_s1:.2f}")
 
 def cmd_evolution(eps: float, min_samples: int, target_family: int):
     """Clusters the attacks, then traces mutations within a specific family."""
