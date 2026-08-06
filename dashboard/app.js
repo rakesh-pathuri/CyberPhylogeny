@@ -7,9 +7,9 @@ mermaid.initialize({
 });
 
 // Tab Navigation Logic
-document.querySelectorAll('header .tab-btn').forEach(btn => {
+document.querySelectorAll('.soc-header .tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-        document.querySelectorAll('header .tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.soc-header .tab-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         
         btn.classList.add('active');
@@ -29,59 +29,82 @@ function switchTreeView(mode) {
     document.getElementById(`tree-output-${mode}`).classList.add('active');
 }
 
+// Format Utilities
+function escapeHtml(unsafe) {
+    return unsafe
+         .replace(/&/g, "&amp;")
+         .replace(/</g, "&lt;")
+         .replace(/>/g, "&gt;")
+         .replace(/"/g, "&quot;")
+         .replace(/'/g, "&#039;");
+}
+
+function processAsciiTreeColors(text) {
+    // Converts rich tags [green] [/green] and [red] [/red] to span tags
+    let processed = text.replace(/\[green\]/g, '<span style="color: var(--success);">');
+    processed = processed.replace(/\[\/green\]/g, '</span>');
+    processed = processed.replace(/\[red\]/g, '<span style="color: var(--danger);">');
+    processed = processed.replace(/\[\/red\]/g, '</span>');
+    return processed;
+}
+
 // API Callers
 async function fetchGenome() {
     const id = document.getElementById('genome-id-input').value.trim();
     if (!id) return;
     
     const out = document.getElementById('genome-output');
-    out.innerHTML = `<div class="placeholder-text">FETCHING DATA...</div>`;
+    out.innerHTML = `<div class="empty-state blink">QUERYING KNOWLEDGE BASE...</div>`;
     
     try {
         const res = await fetch(`/api/genome?id=${id}`);
         const data = await res.json();
         
         if (data.error) {
-            out.innerHTML = `<p style="color:red;">Error: ${data.error}</p>`;
+            out.innerHTML = `<div class="empty-state" style="color: var(--danger);">ERROR: ${data.error.toUpperCase()}</div>`;
             return;
         }
         
-        let html = `<h3>Genome Profile: ${data.name} (${id})</h3>`;
-        html += `<table>
-            <tr>
-                <th>Index</th>
-                <th>Technique ID</th>
-                <th>Implementation</th>
-                <th>Behavior</th>
-                <th>Tactic</th>
-            </tr>`;
+        let html = `<div class="table-wrapper">
+            <table>
+            <thead>
+                <tr>
+                    <th style="width: 50px;">Idx</th>
+                    <th style="width: 120px;">Technique ID</th>
+                    <th>Implementation</th>
+                    <th>Behavior</th>
+                    <th>Tactic</th>
+                </tr>
+            </thead>
+            <tbody>`;
             
         data.genes.forEach((g, idx) => {
             html += `<tr>
-                <td>${idx + 1}</td>
-                <td>${g.technique_id}</td>
-                <td>${g.implementation}</td>
-                <td>${g.behavior}</td>
-                <td>${g.tactic}</td>
+                <td class="mono" style="color: var(--text-secondary);">${String(idx + 1).padStart(2, '0')}</td>
+                <td class="mono highlight">${g.technique_id}</td>
+                <td>${escapeHtml(g.implementation)}</td>
+                <td>${escapeHtml(g.behavior)}</td>
+                <td style="color: var(--text-secondary);">${escapeHtml(g.tactic)}</td>
             </tr>`;
         });
-        html += `</table>`;
+        html += `</tbody></table></div>`;
         out.innerHTML = html;
         
     } catch (e) {
-        out.innerHTML = `<p style="color:red;">API Request Failed.</p>`;
+        out.innerHTML = `<div class="empty-state" style="color: var(--danger);">API CONNECTION LOST</div>`;
     }
 }
 
 async function fetchFamilies() {
     const out = document.getElementById('family-list-output');
+    out.innerHTML = `<div class="empty-state blink">CLUSTERING GENOMES...</div>`;
     
     try {
         const res = await fetch(`/api/cluster`);
         const data = await res.json();
         
         if (data.error) {
-            out.innerHTML = `<p style="color:red;">Error: ${data.error}</p>`;
+            out.innerHTML = `<div class="empty-state" style="color: var(--danger);">ERROR: ${data.error.toUpperCase()}</div>`;
             return;
         }
         
@@ -91,19 +114,19 @@ async function fetchFamilies() {
             card.className = 'family-card';
             card.innerHTML = `
                 <h3>FAMILY ${f.id}</h3>
-                <p style="font-family: var(--font-mono); font-size: 12px; color: #888;">${f.size} variants</p>
-                <button style="margin-top: 10px; width: 100%;" onclick="loadTreeFromFamily('${f.id}')">VIEW PHYLOGENY</button>
+                <div class="stats">${f.size} VARIANTS DETECTED</div>
+                <button onclick="loadTreeFromFamily('${f.id}')">VIEW PHYLOGENY</button>
             `;
             out.appendChild(card);
         });
         
     } catch (e) {
-        out.innerHTML = `<p style="color:red;">API Request Failed.</p>`;
+        out.innerHTML = `<div class="empty-state" style="color: var(--danger);">API CONNECTION LOST</div>`;
     }
 }
 
 function loadTreeFromFamily(familyId) {
-    document.querySelector('header .tab-btn[data-tab="tab-trees"]').click();
+    document.querySelector('.soc-header .tab-btn[data-tab="tab-trees"]').click();
     document.getElementById('tree-family-input').value = familyId;
     fetchTree();
 }
@@ -117,24 +140,28 @@ async function fetchTree() {
     const stats = document.getElementById('tree-stats');
     
     outAscii.innerHTML = 'COMPUTING MST...';
-    outMermaid.innerHTML = '<div class="placeholder-text">COMPUTING MST...</div>';
+    outMermaid.innerHTML = '<div class="empty-state blink">COMPUTING MST...</div>';
     stats.innerHTML = 'STATUS: COMPUTING...';
+    stats.style.color = 'var(--text-secondary)';
     
     try {
         const res = await fetch(`/api/tree?family=${id}`);
         const data = await res.json();
         
         if (data.error) {
-            outAscii.innerHTML = `Error: ${data.error}`;
-            outMermaid.innerHTML = `<p style="color:red;">Error: ${data.error}</p>`;
-            stats.innerHTML = 'STATUS: ERROR';
+            outAscii.innerHTML = `ERROR: ${data.error.toUpperCase()}`;
+            outMermaid.innerHTML = `<div class="empty-state" style="color: var(--danger);">ERROR: ${data.error.toUpperCase()}</div>`;
+            stats.innerHTML = 'STATUS: FAILED';
+            stats.style.color = 'var(--danger)';
             return;
         }
         
-        stats.innerHTML = 'STATUS: RENDERED';
+        stats.innerHTML = 'STATUS: OK';
+        stats.style.color = 'var(--success)';
         
-        // Render ASCII
-        outAscii.textContent = data.ascii;
+        // Render ASCII (escaped, then parsed for color tags)
+        let safeAscii = escapeHtml(data.ascii);
+        outAscii.innerHTML = processAsciiTreeColors(safeAscii);
         
         // Render Mermaid
         outMermaid.innerHTML = `<div class="mermaid" id="mermaid-graph"></div>`;
@@ -143,9 +170,10 @@ async function fetchTree() {
         graphDiv.innerHTML = svg;
         
     } catch (e) {
-        outAscii.innerHTML = 'API Request Failed.';
-        outMermaid.innerHTML = `<p style="color:red;">API Request Failed.</p>`;
-        stats.innerHTML = 'STATUS: FAILED';
+        outAscii.innerHTML = 'API CONNECTION LOST';
+        outMermaid.innerHTML = `<div class="empty-state" style="color: var(--danger);">API CONNECTION LOST</div>`;
+        stats.innerHTML = 'STATUS: OFFLINE';
+        stats.style.color = 'var(--danger)';
     }
 }
 
@@ -154,51 +182,60 @@ async function fetchPrediction() {
     if (!seq) return;
     
     const out = document.getElementById('predict-output');
-    out.innerHTML = `<div class="placeholder-text">CALCULATING PROBABILITIES...</div>`;
+    out.innerHTML = `<div class="empty-state blink">ANALYZING SEQUENCE PROBABILITIES...</div>`;
     
     try {
         const res = await fetch(`/api/predict?seq=${encodeURIComponent(seq)}`);
         const data = await res.json();
         
         if (data.error) {
-            out.innerHTML = `<p style="color:red;">Error: ${data.error}</p>`;
+            out.innerHTML = `<div class="empty-state" style="color: var(--danger);">ERROR: ${data.error.toUpperCase()}</div>`;
             return;
         }
         
         if (data.predictions.length === 0) {
-            out.innerHTML = `<p style="color:yellow;">No highly probable sequences found.</p>`;
+            out.innerHTML = `<div class="empty-state" style="color: var(--text-secondary);">NO SIGNIFICANT PREDICTIONS FOUND</div>`;
             return;
         }
         
-        let html = `<table>
-            <tr>
-                <th>Predicted Technique ID</th>
-                <th>Implementation</th>
-                <th>Behavior</th>
-                <th>Tactic</th>
-                <th>Probability</th>
-                <th>Confidence Score</th>
-            </tr>`;
+        let html = `<div class="table-wrapper">
+            <table>
+            <thead>
+                <tr>
+                    <th style="width: 120px;">Technique ID</th>
+                    <th>Implementation</th>
+                    <th>Tactic</th>
+                    <th style="width: 250px;">Probability</th>
+                </tr>
+            </thead>
+            <tbody>`;
             
         data.predictions.forEach(p => {
+            const probNum = parseFloat(p.probability);
             html += `<tr>
-                <td style="color:var(--accent); font-weight:bold;">${p.technique_id}</td>
-                <td>${p.implementation}</td>
-                <td>${p.behavior}</td>
-                <td>${p.tactic}</td>
-                <td style="color:var(--accent);">${p.probability}</td>
-                <td>${p.confidence}</td>
+                <td class="mono highlight">${p.technique_id}</td>
+                <td>${escapeHtml(p.implementation)}</td>
+                <td style="color: var(--text-secondary);">${escapeHtml(p.tactic)}</td>
+                <td>
+                    <div style="display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 12px; margin-bottom: 2px;">
+                        <span>${p.probability}</span>
+                        <span style="color: var(--text-secondary);">${p.confidence} CONFIDENCE</span>
+                    </div>
+                    <div class="prob-bar-container">
+                        <div class="prob-bar" style="width: ${Math.min(100, probNum)}%;"></div>
+                    </div>
+                </td>
             </tr>`;
         });
-        html += `</table>`;
+        html += `</tbody></table></div>`;
         out.innerHTML = html;
         
     } catch (e) {
-        out.innerHTML = `<p style="color:red;">API Request Failed.</p>`;
+        out.innerHTML = `<div class="empty-state" style="color: var(--danger);">API CONNECTION LOST</div>`;
     }
 }
 
 // Boot
 window.onload = () => {
-    fetchFamilies(); // load families automatically on startup
+    fetchFamilies();
 };
