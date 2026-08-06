@@ -204,14 +204,10 @@ class EvolutionEngine:
                         break
                         
                 parent_genome = family_genomes[parent_idx]
-                label = f"[bold magenta]Descendant: {genome.id} ({genome.name})[/bold magenta] [dim](Evolved from {parent_genome.id})[/dim]"
+                # Recompute distance for MST branch length
+                mutation_score = sequence_alignment_distance(parent_genome.genes, genome.genes, is_tactic=False)
+                label = f"[bold magenta]{genome.id} ({genome.name})[/bold magenta] [dim](+{mutation_score:.1f})[/dim]"
                 current_branch = root_tree.add(label)
-                
-                # Get annotated genes compared to parent
-                annotated_genes, mutation_score = self._get_aligned_genes(parent_genome, genome)
-                current_branch.add(f"[bold red]Mutation Score: {mutation_score}[/bold red]")
-                for line in annotated_genes:
-                    current_branch.add(line)
                     
             # Recurse for children
             for child_idx in children[node_idx]:
@@ -306,25 +302,10 @@ class EvolutionEngine:
                 g = node["genome"]
                 label = f"[bold cyan]{g.id} ({g.name})[/bold cyan] [dim](branch: {branch_len:.2f})[/dim]"
                 leaf = tree_node.add(label)
-                
-                if parent_genome:
-                    annotated_genes, mutation_score = self._get_aligned_genes(parent_genome, g)
-                    leaf.add(f"[bold red]Mutation Score: {mutation_score}[/bold red]")
-                    for line in annotated_genes:
-                        leaf.add(line)
-                else:
-                    for gene in g.genes:
-                        leaf.add(f"\\[{gene.tactic}] {gene.behavior}: {gene.implementation}")
             else:
                 # Internal node
                 label = f"[bold yellow]Common Ancestor[/bold yellow] [dim](height: {node['height']:.2f}, branch: {branch_len:.2f})[/dim]"
                 new_branch = tree_node.add(label)
-                
-                if parent_genome:
-                    annotated_genes, mutation_score = self._get_aligned_genes(parent_genome, node["genome"])
-                    new_branch.add(f"[bold red]Mutation Score: {mutation_score}[/bold red]")
-                    for line in annotated_genes:
-                        new_branch.add(line)
                     
                 for child in node["children"]:
                     traverse(child, new_branch, node["genome"], node["height"])
@@ -380,3 +361,61 @@ class EvolutionEngine:
             created=min(g1.created, g2.created), 
             genes=ancestral_genes[::-1]
         )
+
+    def get_tactic_grouped_mutations(self, ancestor: Genome, descendant: Genome) -> Tuple[Dict[str, List[str]], float]:
+        """Calculates mutations and groups them by Tactic for Git-style diff."""
+        seq1 = ancestor.genes
+        seq2 = descendant.genes
+        
+        n, m = len(seq1), len(seq2)
+        dp = np.zeros((n + 1, m + 1), dtype=float)
+        for i in range(n + 1): dp[i][0] = float(i)
+        for j in range(m + 1): dp[0][j] = float(j)
+            
+        for i in range(1, n + 1):
+            for j in range(1, m + 1):
+                c1 = seq1[i-1]
+                c2 = seq2[j-1]
+                if c1.technique_id == c2.technique_id:
+                    cost = 0.0
+                elif c1.tactic == c2.tactic:
+                    cost = 0.5
+                else:
+                    cost = 1.0
+                dp[i][j] = min(dp[i-1][j]+1.0, dp[i][j-1]+1.0, dp[i-1][j-1]+cost)
+                
+        mutation_score = 0.0
+        grouped_mutations = {}
+        i, j = n, m
+        
+        # Traverse and collect backwards
+        ops = []
+        while i > 0 or j > 0:
+            if i > 0 and j > 0 and seq1[i-1].technique_id == seq2[j-1].technique_id:
+                i -= 1; j -= 1
+            elif i > 0 and j > 0 and dp[i][j] < dp[i-1][j] + 1.0 and dp[i][j] < dp[i][j-1] + 1.0:
+                old_g = ancestor.genes[i-1]
+                new_g = descendant.genes[j-1]
+                if old_g.tactic == new_g.tactic:
+                    mutation_score += 0.5
+                    ops.append((new_g.tactic, f"[dim]{old_g.implementation}[/dim]\n[yellow]v[/yellow]\n[cyan]{new_g.implementation}[/cyan]"))
+                else:
+                    mutation_score += 1.0
+                    ops.append((new_g.tactic, f"[dim][{old_g.tactic}] {old_g.implementation}[/dim]\n[red]->[/red]\n[cyan]{new_g.implementation}[/cyan]"))
+                i -= 1; j -= 1
+            elif i > 0 and dp[i][j] == dp[i-1][j] + 1:
+                mutation_score += 1.0
+                old_g = ancestor.genes[i-1]
+                ops.append((old_g.tactic, f"[red]- {old_g.implementation}[/red]"))
+                i -= 1
+            else:
+                mutation_score += 1.0
+                new_g = descendant.genes[j-1]
+                ops.append((new_g.tactic, f"[green]+ {new_g.implementation}[/green]"))
+                j -= 1
+                
+        ops.reverse()
+        for tactic, desc in ops:
+            grouped_mutations.setdefault(tactic, []).append(desc)
+            
+        return grouped_mutations, mutation_score

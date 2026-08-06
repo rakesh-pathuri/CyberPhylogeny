@@ -140,32 +140,27 @@ Groups attacks into families based on Sequence Alignment.
 python main.py cluster --eps 0.6 --min_samples 2
 ```
 
-**3. Phylogenetic Terminal Tree (Core Feature)** 
-Prints a branching evolutionary tree. Supports two algorithms:
-- `mst` (Maximum Parsimony): Default. Traces exact technique mutations between known attacks.
+**3. Phylogenetic Terminal Tree (Topology)** 
+Prints a clean mathematical dendrogram showing relationships and branch heights. Supports two algorithms:
+- `mst` (Maximum Parsimony): Traces exact descent between known attacks.
 - `upgma` (Unweighted Pair Group Method with Arithmetic Mean): Generates a true hierarchical dendrogram with hypothetical common ancestors.
 ```bash
-python main.py tree 24 --algo mst
-```
-*Example Output:*
-```text
-Phylogenetic Tree for Family 24 (2 variants)
-Evolutionary Tree
-├── Ancestor: S0263 (TYPEFRAME)
-│   ├── [execution] Command and Scripting Interpreter: Windows Command Shell
-│   ├── [execution] User Execution: Malicious File
-│   ├── [persistence] Create or Modify System Process: Windows Service
-│   └── [discovery] File and Directory Discovery: File and Directory Discovery
-└── Descendant: S0527 (CSPY Downloader) (Evolved from S0263)
-    ├── Mutation Score: 7.5
-    ├── Type: Substitution | [execution] Scheduled Task/Job: Scheduled Task <-- Mutated (from Windows Command Shell)
-    ├── Type: Tactic Shift | [execution] User Execution: Malicious File <-- Tactic Shift (from [persistence] Windows Service)
-    ├── Type: Tactic Shift | [privilege-escalation] Abuse Elevation Control Mechanism: Bypass User Account Control <-- Tactic Shift (from [discovery] File and Directory Discovery)
-    └── Type: Insertion    | [defense-impairment] Subvert Trust Controls: Code Signing <-- New Gene
-* Score Calculation: 0.0 (Exact Match) | 0.5 (Substitution within same Tactic) | 1.0 (Insertion / Deletion / Cross-Tactic Substitution)
+python main.py tree 24 --algo upgma
 ```
 
-**4. Predict Next Steps** 
+**4. Mutation Diff (Forensic Report)**
+Outputs a highly formatted, tactic-grouped report showing exactly what was inserted, deleted, or substituted between two attacks (just like `git diff`).
+```bash
+python main.py diff S0347 S0527
+```
+
+**5. Lineage Trace**
+Traces the evolutionary chain of a specific attack back to its root.
+```bash
+python main.py lineage S0527
+```
+
+**6. Predict Next Steps** 
 Estimates the attacker's most probable next behavioral gene.
 ```bash
 python main.py predict T1566.001,T1059.001

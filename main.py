@@ -177,9 +177,119 @@ def cmd_tree(eps: float, min_samples: int, target_family: int, algo: str):
     else:
         tree = evo_engine.build_terminal_tree(family_genomes)
         console.print(tree)
-        # Note instead of Legend Table for MST only
-        console.print("[dim italic]* Score Calculation: 0.0 (Exact Match) | 0.5 (Substitution within same Tactic) | 1.0 (Insertion / Deletion / Cross-Tactic Substitution)[/dim italic]")
-        console.print()
+
+def cmd_diff(ancestor_id: str, descendant_id: str):
+    """Shows tactic-grouped mutations between two attacks (like git diff)."""
+    data = fetch_mitre_data()
+    _, genomes = parse_mitre_to_genomes(data)
+    
+    ancestor = next((g for g in genomes if g.id.lower() == ancestor_id.lower()), None)
+    descendant = next((g for g in genomes if g.id.lower() == descendant_id.lower()), None)
+    
+    if not ancestor:
+        console.print(f"[red]Ancestor ID '{ancestor_id}' not found.[/red]")
+        return
+    if not descendant:
+        console.print(f"[red]Descendant ID '{descendant_id}' not found.[/red]")
+        return
+        
+    evo_engine = EvolutionEngine(genomes)
+    grouped_mutations, score = evo_engine.get_tactic_grouped_mutations(ancestor, descendant)
+    
+    console.print(f"\n[bold cyan]Attack : {descendant.id} ({descendant.name})[/bold cyan]")
+    console.print(f"[bold red]Mutation Score : {score}[/bold red]\n")
+    console.print("[bold]Mutations[/bold]")
+    
+    if not grouped_mutations:
+        console.print("[dim]No structural mutations (Identical Genome)[/dim]")
+        return
+        
+    for tactic, ops in grouped_mutations.items():
+        console.print(f"\n[bold magenta]{tactic.title()}[/bold magenta]")
+        console.print("--------------")
+        for op in ops:
+            console.print(op + "\n")
+
+def cmd_lineage(attack_id: str):
+    """Traces the evolutionary chain of a specific attack back to its root."""
+    data = fetch_mitre_data()
+    _, genomes = parse_mitre_to_genomes(data)
+    
+    target = next((g for g in genomes if g.id.lower() == attack_id.lower()), None)
+    if not target:
+        console.print(f"[red]Attack ID '{attack_id}' not found.[/red]")
+        return
+        
+    sim_engine = SimilarityEngine(genomes)
+    # We must cluster to find its family and the MST path
+    families = sim_engine._cluster_with_metric(genomes, metric_type="levenshtein_genes", eps=0.6, min_samples=2)
+    
+    target_family = None
+    for label, family in families.items():
+        if target in family:
+            target_family = family
+            break
+            
+    if not target_family:
+        console.print(f"[red]Attack ID '{attack_id}' is an orphan (not in any evolutionary family).[/red]")
+        return
+        
+    # Rebuild MST logic to find path
+    n = len(target_family)
+    import numpy as np
+    from src.similarity import sequence_alignment_distance
+    dist_matrix = np.zeros((n, n))
+    for i in range(n):
+        for j in range(i+1, n):
+            d = sequence_alignment_distance(target_family[i].genes, target_family[j].genes, is_tactic=False)
+            dist_matrix[i][j] = dist_matrix[j][i] = d
+            
+    root_idx = min(range(n), key=lambda idx: target_family[idx].created)
+    target_idx = target_family.index(target)
+    
+    visited = {root_idx}
+    children = {i: [] for i in range(n)}
+    parents = {root_idx: None}
+    
+    while len(visited) < n:
+        min_dist = float('inf')
+        best_edge = None
+        for u in visited:
+            for v in range(n):
+                if v not in visited and dist_matrix[u][v] < min_dist:
+                    min_dist = dist_matrix[u][v]
+                    best_edge = (u, v)
+        if best_edge:
+            u, v = best_edge
+            visited.add(v)
+            children[u].append(v)
+            parents[v] = u
+            
+    # Trace path back from target to root
+    path = []
+    curr = target_idx
+    while curr is not None:
+        path.append(target_family[curr])
+        curr = parents.get(curr)
+        
+    path.reverse()
+    
+    from rich.tree import Tree
+    console.print(f"\n[bold cyan]Lineage for {target.id}[/bold cyan]")
+    
+    if len(path) == 1:
+        console.print(f"[bold cyan]Root: {target.id} ({target.name})[/bold cyan]")
+        return
+        
+    lineage_tree = Tree(f"[bold cyan]Root: {path[0].id} ({path[0].name})[/bold cyan]")
+    curr_branch = lineage_tree
+    
+    for i in range(1, len(path)):
+        node = path[i]
+        label = f"[bold magenta]{node.id} ({node.name})[/bold magenta]"
+        curr_branch = curr_branch.add(label)
+        
+    console.print(lineage_tree)
     
 
 
@@ -211,6 +321,15 @@ if __name__ == "__main__":
     parser_predict = subparsers.add_parser("predict", help="Predict next steps of an ongoing attack")
     parser_predict.add_argument("sequence", type=str, help="Comma-separated list of Technique IDs (e.g., 'T1566.001,T1059.001')")
     parser_predict.add_argument("--k", type=int, default=3, help="Number of nearest neighbors to consider")
+    
+    # 6. Diff
+    parser_diff = subparsers.add_parser("diff", help="Show tactic-grouped mutations between two attacks")
+    parser_diff.add_argument("ancestor", type=str, help="Ancestor Attack ID (e.g., 'S0347')")
+    parser_diff.add_argument("descendant", type=str, help="Descendant Attack ID (e.g., 'S0527')")
+    
+    # 7. Lineage
+    parser_lineage = subparsers.add_parser("lineage", help="Trace the evolutionary chain of a specific attack")
+    parser_lineage.add_argument("attack_id", type=str, help="Target Attack ID (e.g., 'S0527')")
 
     args = parser.parse_args()
     
@@ -224,6 +343,10 @@ if __name__ == "__main__":
         cmd_tree(args.eps, args.min_samples, int(args.family), args.algo)
     elif args.command == "predict":
         cmd_predict(args.sequence, args.k)
+    elif args.command == "diff":
+        cmd_diff(args.ancestor, args.descendant)
+    elif args.command == "lineage":
+        cmd_lineage(args.attack_id)
 
     else:
         parser.print_help()
