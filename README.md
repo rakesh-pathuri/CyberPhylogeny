@@ -9,7 +9,7 @@
 
 > **Research Concept:** CyberPhylogeny models cyberattacks as evolving behavioral genomes and reconstructs their evolutionary lineage using bioinformatics-inspired sequence analysis and phylogenetic inference.
 
-## Current Research Questions
+## Research Hypotheses
 
 This framework was built to explore the following open questions in proactive cyber defense:
 * Can behavioral genomes accurately reconstruct the evolutionary ancestry of a cyberattack?
@@ -31,14 +31,14 @@ CyberPhylogeny maps standard cybersecurity ideas into a 4-tier biological ontolo
   ```
 - **Genome:** The ordered sequence of Genes that makes up a complete cyberattack. While modern attacks may involve branching or retries, an individual **execution trace** (a specific instance of an attack) is a linear temporal path. The Genome models this trace.
 - **Evolutionary Family:** A group of Genomes that share a common ancestor.
-- **Phylogenetic Tree:** A branching graph constructed to infer the most likely evolutionary lineage. While computing true Maximum Parsimony is NP-hard (equivalent to the Steiner Tree problem), CyberPhylogeny utilizes **Minimum Spanning Trees (MST)** as a computationally tractable 2-approximation, assuming the triangle inequality holds across the mutation distance space.
+- **Phylogenetic Tree:** A branching graph constructed to infer the most likely evolutionary lineage. While computing true Maximum Parsimony is computationally intractable for large datasets, CyberPhylogeny utilizes **Minimum Spanning Trees (MST)** to build a parsimonious approximation by finding the shortest mutational paths connecting observed attack sequences.
 
 ## Formalization & Core Concepts
 
 To elevate this framework beyond a heuristic analogy, we rely on formal mathematical definitions:
 
 - **Genome (G)**: An ordered sequence of genes. `G = [g1, g2, g3, ..., gn]`
-- **Evolutionary Distance (D(G1, G2))**: The mathematical distance between two genomes. Because cyberattack traces are inherently discrete, ordered, temporal sequences, CyberPhylogeny utilizes **Weighted Sequence Alignment** with hierarchical taxonomic penalties. This was chosen over Graph Edit Distance (which ignores temporal ordering) and Dynamic Time Warping (which is suited for continuous signals) because it perfectly homologous to biological sequence alignment while remaining computationally tractable.
+- **Evolutionary Distance (D(G1, G2))**: The mathematical distance between two genomes. Because cyberattack traces are modeled as discrete, ordered, temporal sequences, CyberPhylogeny utilizes **Weighted Sequence Alignment** with hierarchical taxonomic penalties. Graph Edit Distance captures topology but is less suited to our chosen execution-trace representation, which preserves strict temporal order. Sequence alignment is conceptually aligned with biological methods while remaining computationally tractable for our threat model.
 - **Local Alignment**: Using the Smith-Waterman algorithm to mathematically discover optimal local subsequence alignments. This identifies the most similar historical subsequences, which are then used by the KNN engine for prediction.
 - **Mutation (Δ(G1, G2))**: The specific genetic changes (Insertions, Deletions, Substitutions) that turn `G1` into `G2`.
 - **Family (F)**: A density-based cluster of genomes where the distance `D` is less than a threshold `ϵ`. `F = { G | D(G1, G2) < ϵ }`
@@ -52,6 +52,13 @@ Why model attacks as evolving genomes instead of simply comparing ATT&CK sequenc
 3. **Maximum Parsimony vs. Chronology:** Real evolution is driven by accumulating mutations, not just the passage of time. CyberPhylogeny uses chronological timestamps only as a *directional constraint* (a descendant cannot predate its ancestor) while relying on **Maximum Parsimony** (MST) to determine the actual evolutionary lineage.
 4. **Predictive Alignment:** CTI tools are typically reactive. CyberPhylogeny utilizes local sequence alignment (Smith-Waterman) to accurately align ongoing, incomplete attack sequences against historical genomes. These alignments identify the most similar historical subsequences, which then feed our KNN engine to probabilistically estimate the next move.
 5. **Algorithmic Scalability:** Features a custom **MinHash LSH** pass to instantly filter and bucket genomes before running the heavy comparison math, making the framework extremely fast.
+
+## Threat Model & Assumptions
+
+To clarify what a "Genome" represents in this framework, we define the following scope:
+- **Attack Scope**: We model linear *execution traces* of malware, tools, or specific APT campaigns.
+- **The Genome**: Represents a temporal, ordered sequence of behaviors observed during a specific attack execution. It does not model a threat actor's entire arsenal or highly branching concurrent attacks.
+- **Data Source**: We utilize MITRE ATT&CK STIX data, mapping techniques as the foundational genomic alphabet.
 
 ## Project Architecture (Multi-Stage Pipeline)
 
@@ -162,7 +169,7 @@ python main.py cluster --eps 0.6 --min_samples 2
 
 **3. Phylogenetic Terminal Tree (Topology)** 
 Prints a clean mathematical dendrogram showing relationships and branch heights. Supports two algorithms:
-- `mst` (Maximum Parsimony): Traces exact descent between known attacks.
+- `mst` (Maximum Parsimony): Infers the most parsimonious ancestry between known attacks.
 - `upgma` (Unweighted Pair Group Method with Arithmetic Mean): Generates a true hierarchical dendrogram with hypothetical common ancestors.
 ```bash
 python main.py tree 24 --algo upgma
@@ -265,6 +272,14 @@ Most Probable Next Behaviors:
 +-------------------------------------------------------------------------------------------------+
 * Confidence Score represents the mathematical similarity of the historical sequence matched.
 ```
+
+## Limitations & Future Work
+
+To ensure scientific rigor, we acknowledge the following limitations of the framework:
+
+1. **Inferred Provenance**: CyberPhylogeny reconstructs *inferred* behavioral ancestry rather than true, verified operational provenance. The inferred phylogeny is a hypothesis generated from behavioral similarity rather than verified attacker genealogy.
+2. **Temporal Simplification**: The framework assumes attack traces can be represented as linear, ordered execution sequences, which may oversimplify highly parallel or distributed campaigns.
+3. **Convergent Evolution vs. Shared Ancestry**: A critical challenge in both biology and cybersecurity is distinguishing *convergent evolution* (two independent threat actors discovering the same optimal technique sequence) from *shared ancestry* (code/tactic sharing). Future iterations of the prediction engine aim to incorporate geopolitical and attribution metadata to differentiate these phenomena.
 
 ---
 ### Authorship & Contributions
