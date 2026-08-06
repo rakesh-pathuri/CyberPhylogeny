@@ -57,6 +57,7 @@ Why model attacks as evolving genomes instead of simply comparing ATT&CK sequenc
 
 To clarify what a "Genome" represents in this framework, we define the following scope:
 - **Attack Scope**: We model linear *execution traces* of malware, tools, or specific APT campaigns.
+- **Unified Genomic Space**: We cluster APT groups, malware, and open-source tools together into a single taxonomic tree. Modern APT campaigns frequently subsume and evolve from commodity malware and open-source tools; tracing this evolutionary lineage requires a unified biological ontology.
 - **The Genome**: Represents a temporal, ordered sequence of behaviors observed during a specific attack execution. It does not model a threat actor's entire arsenal or highly branching concurrent attacks.
 - **Data Source**: We utilize MITRE ATT&CK STIX data, mapping techniques as the foundational genomic alphabet.
 
@@ -174,9 +175,16 @@ Loading cached ATT&CK Genome Repository...
 Applying MinHash LSH pre-filtering...
 Calculating distances (Weighted Sequence Alignment)... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
 
-STAGE 1: Strict Evolutionary (Weighted Sequence Alignment) Families
+Genome Distance Statistics (997 genomes)
+Min    : 0.00
+Mean   : 0.96
+Median : 1.00
+95%    : 1.00
+Max    : 1.00
 
-Family 0 - 6 attacks
+STAGE 1: Evolutionary Ancestry (Weighted Sequence Alignment) Families
+
+Family 0 - 166 attacks
 +------------------------------------------------------+
 | Attack /     |                       |               |
 | Group ID     | Name                  | Genome Length |
@@ -184,10 +192,18 @@ Family 0 - 6 attacks
 | S0527        | CSPY Downloader       | 12            |
 | S0347        | AuditCred             | 9             |
 | S0263        | TYPEFRAME             | 5             |
-| S0104        | Pasam                 | 1             |
-| S0077        | Windows Credential E  | 1             |
-| S0383        | Linfo                 | 1             |
+| ...          | ...                   | ...           |
 +------------------------------------------------------+
+
+...
+
+Clustering Summary
+Attacks analyzed : 997
+Families found   : 60
+Largest family   : 166
+Median family size: 2
+Noise            : 645
+Silhouette Score : 0.01
 ```
 
 **3. Phylogenetic Terminal Tree (Topology)** 

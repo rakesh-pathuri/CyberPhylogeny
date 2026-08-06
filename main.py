@@ -25,7 +25,7 @@ def cmd_cluster(eps: float, min_samples: int):
     _, genomes = parse_mitre_to_genomes(data)
     
     sim_engine = SimilarityEngine(genomes)
-    f1, f2, f3 = sim_engine.run_multi_stage_pipeline(eps, min_samples)
+    f1, f2, f3, score_s1 = sim_engine.run_multi_stage_pipeline(eps, min_samples)
     
     def print_families(families, stage_name):
         console.print(f"\n[bold]{stage_name} Families[/bold]")
@@ -47,11 +47,23 @@ def cmd_cluster(eps: float, min_samples: int):
                 table.add_row(g.id, g.name, str(len(g.genes)))
             console.print(table)
             
-    print_families(f1, "STAGE 1: Strict Evolutionary (Weighted Sequence Alignment)")
+    print_families(f1, "STAGE 1: Evolutionary Ancestry (Weighted Sequence Alignment)")
     if f2 and len(f2) > 1: # More than just orphans
         print_families(f2, "STAGE 2: Unordered Motif (Jaccard)")
     if f3 and len(f3) > 1:
         print_families(f3, "STAGE 3: Taxonomic Zooming (Tactics)")
+        
+    # Print Clustering Summary
+    console.print("\n[bold cyan]Clustering Summary[/bold cyan]")
+    valid_sizes = [len(f) for lbl, f in f1.items() if lbl != -1]
+    import numpy as np
+    console.print(f"Attacks analyzed : {len(genomes)}")
+    console.print(f"Families found   : {len(valid_sizes)}")
+    if valid_sizes:
+        console.print(f"Largest family   : {max(valid_sizes)}")
+        console.print(f"Median family size: {int(np.median(valid_sizes))}")
+    console.print(f"Noise            : {len(f1.get(-1, []))}")
+    console.print(f"Silhouette Score : {score_s1:.2f}")
 
 def cmd_evolution(eps: float, min_samples: int, target_family: int):
     """Clusters the attacks, then traces mutations within a specific family."""
@@ -59,7 +71,7 @@ def cmd_evolution(eps: float, min_samples: int, target_family: int):
     _, genomes = parse_mitre_to_genomes(data)
     
     sim_engine = SimilarityEngine(genomes)
-    families = sim_engine.cluster_families(eps, min_samples)
+    families, _ = sim_engine._cluster_with_metric(genomes, metric_type="alignment_genes", eps=eps, min_samples=min_samples)
     
     if target_family not in families:
         console.print(f"[red]Family {target_family} not found.[/red]")
@@ -148,7 +160,7 @@ def cmd_genome(attack_id: str):
     
     # Calculate family and generation
     sim_engine = SimilarityEngine(genomes)
-    families = sim_engine._cluster_with_metric(genomes, metric_type="alignment_genes", eps=0.6, min_samples=2)
+    families, _ = sim_engine._cluster_with_metric(genomes, metric_type="alignment_genes", eps=0.45, min_samples=2)
     
     target_family = None
     family_id = None
@@ -210,7 +222,7 @@ def cmd_tree(eps: float, min_samples: int, target_family: int, algo: str):
     _, genomes = parse_mitre_to_genomes(data)
     
     sim_engine = SimilarityEngine(genomes)
-    families = sim_engine._cluster_with_metric(genomes, metric_type="alignment_genes", eps=eps, min_samples=min_samples)
+    families, _ = sim_engine._cluster_with_metric(genomes, metric_type="alignment_genes", eps=eps, min_samples=min_samples)
     
     if target_family not in families:
         console.print(f"[red]Family {target_family} not found in Stage 1.[/red]")
@@ -271,7 +283,7 @@ def cmd_ancestry(attack_id: str):
         return
         
     sim_engine = SimilarityEngine(genomes)
-    families = sim_engine._cluster_with_metric(genomes, metric_type="alignment_genes", eps=0.6, min_samples=2)
+    families, _ = sim_engine._cluster_with_metric(genomes, metric_type="alignment_genes", eps=0.45, min_samples=2)
     
     target_family = None
     for label, family in families.items():
@@ -353,14 +365,14 @@ if __name__ == "__main__":
     
     # 3. Cluster
     parser_cluster = subparsers.add_parser("cluster", help="Cluster attacks into Evolutionary Families")
-    parser_cluster.add_argument("--eps", type=float, default=0.6, help="DBSCAN epsilon distance (0.0 to 1.0)")
+    parser_cluster.add_argument("--eps", type=float, default=0.45, help="DBSCAN epsilon distance (0.0 to 1.0)")
     parser_cluster.add_argument("--min_samples", type=int, default=2, help="Minimum attacks to form a family")
     
     # 4. Tree
     parser_tree = subparsers.add_parser("tree", help="Build a Phylogenetic Tree for a specific family")
     parser_tree.add_argument("family", type=str, help="Family ID to trace (e.g., '24')")
     parser_tree.add_argument("--algo", type=str, default="mst", choices=["mst", "upgma"], help="Algorithm to build tree (mst or upgma)")
-    parser_tree.add_argument("--eps", type=float, default=0.6, help="DBSCAN epsilon used for clustering")
+    parser_tree.add_argument("--eps", type=float, default=0.45, help="DBSCAN epsilon used for clustering")
     parser_tree.add_argument("--min_samples", type=int, default=2, help="Minimum samples used for clustering")
     
     # 5. Predict

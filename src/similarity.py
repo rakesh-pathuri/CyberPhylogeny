@@ -74,35 +74,37 @@ class SimilarityEngine:
     def __init__(self, genomes: List[Genome]):
         self.genomes = genomes
         
-    def run_multi_stage_pipeline(self, eps: float = 0.6, min_samples: int = 2):
+    def run_multi_stage_pipeline(self, eps: float = 0.45, min_samples: int = 2):
         """Runs the 3-stage classification pipeline to classify genomes and mathematically handle orphans."""
         console.print(f"\n[bold green]--- STAGE 1: Sequence Alignment (Needleman-Wunsch) ---[/bold green]")
-        families_s1 = self._cluster_with_metric(self.genomes, metric_type="alignment_genes", eps=eps, min_samples=min_samples)
+        families_s1, score_s1 = self._cluster_with_metric(self.genomes, metric_type="alignment_genes", eps=eps, min_samples=min_samples)
         
         # Extract orphans from Stage 1 (label -1)
         orphans_s1 = families_s1.get(-1, [])
         if orphans_s1:
             console.print(f"\n[bold yellow]--- STAGE 2: Unordered Motif Matching (Jaccard Similarity) ---[/bold yellow]")
             console.print(f"[dim]Analyzing {len(orphans_s1)} orphans from Stage 1...[/dim]")
-            families_s2 = self._cluster_with_metric(orphans_s1, metric_type="jaccard_genes", eps=eps, min_samples=min_samples)
+            families_s2, score_s2 = self._cluster_with_metric(orphans_s1, metric_type="jaccard_genes", eps=eps, min_samples=min_samples)
         else:
             families_s2 = {-1: []}
+            score_s2 = 0.0
             
         # Extract orphans from Stage 2 (label -1)
         orphans_s2 = families_s2.get(-1, [])
         if orphans_s2:
             console.print(f"\n[bold cyan]--- STAGE 3: Taxonomic Zooming (Tactic Alignment) ---[/bold cyan]")
             console.print(f"[dim]Analyzing {len(orphans_s2)} orphans from Stage 2...[/dim]")
-            families_s3 = self._cluster_with_metric(orphans_s2, metric_type="alignment_tactics", eps=eps, min_samples=min_samples)
+            families_s3, score_s3 = self._cluster_with_metric(orphans_s2, metric_type="alignment_tactics", eps=eps, min_samples=min_samples)
         else:
             families_s3 = {-1: []}
+            score_s3 = 0.0
             
-        return families_s1, families_s2, families_s3
+        return families_s1, families_s2, families_s3, score_s1
 
     def _cluster_with_metric(self, genomes: List[Genome], metric_type: str, eps: float, min_samples: int):
         n = len(genomes)
         if n < min_samples:
-            return {-1: genomes}
+            return {-1: genomes}, 0.0
             
         dist_matrix = np.zeros((n, n))
         
@@ -166,6 +168,18 @@ class SimilarityEngine:
                 # Advance only once per genome to keep the clock perfectly stable
                 progress.advance(task)
                 
+        
+        # Print Distance Statistics before clustering
+        if metric_type == "alignment_genes":
+            upper_tri = dist_matrix[np.triu_indices(n, k=1)]
+            if len(upper_tri) > 0:
+                console.print(f"\n[bold]Genome Distance Statistics ({len(genomes)} genomes)[/bold]")
+                console.print(f"Min    : {np.min(upper_tri):.2f}")
+                console.print(f"Mean   : {np.mean(upper_tri):.2f}")
+                console.print(f"Median : {np.median(upper_tri):.2f}")
+                console.print(f"95%    : {np.percentile(upper_tri, 95):.2f}")
+                console.print(f"Max    : {np.max(upper_tri):.2f}")
+                
         clustering = DBSCAN(eps=eps, min_samples=min_samples, metric='precomputed')
         labels = clustering.fit_predict(dist_matrix)
         
@@ -176,4 +190,13 @@ class SimilarityEngine:
                 families[label] = []
             families[label].append(genomes[idx])
             
-        return families
+        silhouette = 0.0
+        if len(set(labels)) > 1 and len(set(labels) - {-1}) > 0:
+            from sklearn.metrics import silhouette_score
+            # Exclude noise for silhouette computation
+            valid_idx = [i for i, lbl in enumerate(labels) if lbl != -1]
+            if len(set(labels[valid_idx])) > 1:
+                valid_dist_matrix = dist_matrix[np.ix_(valid_idx, valid_idx)]
+                silhouette = silhouette_score(valid_dist_matrix, labels[valid_idx], metric='precomputed')
+            
+        return families, silhouette
