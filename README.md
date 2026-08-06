@@ -166,6 +166,29 @@ Groups attacks into families based on Sequence Alignment.
 ```bash
 python main.py cluster --eps 0.6 --min_samples 2
 ```
+*Example Output:*
+```text
+Loading cached ATT&CK Genome Repository...
+
+--- STAGE 1: Sequence Alignment (Needleman-Wunsch) ---
+Applying MinHash LSH pre-filtering...
+Calculating distances (Weighted Sequence Alignment)... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
+
+STAGE 1: Strict Evolutionary (Weighted Sequence Alignment) Families
+
+Family 0 - 6 attacks
++------------------------------------------------------+
+| Attack /     |                       |               |
+| Group ID     | Name                  | Genome Length |
+|--------------+-----------------------+---------------|
+| S0527        | CSPY Downloader       | 12            |
+| S0347        | AuditCred             | 9             |
+| S0263        | TYPEFRAME             | 5             |
+| S0104        | Pasam                 | 1             |
+| S0077        | Windows Credential E  | 1             |
+| S0383        | Linfo                 | 1             |
++------------------------------------------------------+
+```
 
 **3. Phylogenetic Terminal Tree (Topology)** 
 Prints a clean mathematical dendrogram showing relationships and branch heights. Supports two algorithms:
