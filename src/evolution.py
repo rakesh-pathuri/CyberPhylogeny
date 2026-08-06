@@ -238,7 +238,7 @@ class EvolutionEngine:
                 dist_matrix[i][j] = dist_matrix[j][i] = d
 
         # UPGMA state tracking
-        clusters = {i: {"id": i, "genomes": [family_genomes[i]], "height": 0.0, "children": []} for i in range(n)}
+        clusters = {i: {"id": i, "genome": family_genomes[i], "height": 0.0, "children": []} for i in range(n)}
         active_clusters = list(range(n))
         next_cluster_id = n
         
@@ -256,21 +256,31 @@ class EvolutionEngine:
             
             u, v = best_pair
             
+            # Infer ancestor genome
+            genome_u = clusters[u]["genome"]
+            genome_v = clusters[v]["genome"]
+            # Ensure chronological order for infer_ancestor (older first)
+            if genome_u.created > genome_v.created:
+                genome_u, genome_v = genome_v, genome_u
+            
+            ancestor_genome = self.infer_ancestor(f"Internal-{next_cluster_id}", genome_u, genome_v)
+            
             # Create new cluster
             new_height = min_dist / 2.0
             new_cluster = {
                 "id": next_cluster_id, 
-                "genomes": clusters[u]["genomes"] + clusters[v]["genomes"],
+                "genome": ancestor_genome,
                 "height": new_height,
-                "children": [clusters[u], clusters[v]]
+                "children": [clusters[u], clusters[v]],
+                "size": clusters[u].get("size", 1) + clusters[v].get("size", 1)
             }
             clusters[next_cluster_id] = new_cluster
             
             # Update distance matrix (we will just grow the matrix)
             dist_matrix = np.pad(dist_matrix, ((0, 1), (0, 1)), mode='constant')
             
-            size_u = len(clusters[u]["genomes"])
-            size_v = len(clusters[v]["genomes"])
+            size_u = clusters[u].get("size", 1)
+            size_v = clusters[v].get("size", 1)
             size_new = size_u + size_v
             
             for c in active_clusters:
@@ -288,25 +298,85 @@ class EvolutionEngine:
         # Build rich tree
         root_tree = Tree(f"[bold white]UPGMA Dendrogram (Root Height: {root_cluster['height']:.2f})[/bold white]")
         
-        def traverse(node, tree_node, parent_height):
+        def traverse(node, tree_node, parent_genome, parent_height):
             branch_len = parent_height - node["height"]
             
             if len(node["children"]) == 0:
                 # Leaf node
-                g = node["genomes"][0]
+                g = node["genome"]
                 label = f"[bold cyan]{g.id} ({g.name})[/bold cyan] [dim](branch: {branch_len:.2f})[/dim]"
                 leaf = tree_node.add(label)
-                for gene in g.genes:
-                    leaf.add(f"\\[{gene.tactic}] {gene.behavior}: {gene.implementation}")
+                
+                if parent_genome:
+                    annotated_genes, mutation_score = self._get_aligned_genes(parent_genome, g)
+                    leaf.add(f"[bold red]Mutation Score: {mutation_score}[/bold red]")
+                    for line in annotated_genes:
+                        leaf.add(line)
+                else:
+                    for gene in g.genes:
+                        leaf.add(f"\\[{gene.tactic}] {gene.behavior}: {gene.implementation}")
             else:
                 # Internal node
                 label = f"[bold yellow]Common Ancestor[/bold yellow] [dim](height: {node['height']:.2f}, branch: {branch_len:.2f})[/dim]"
                 new_branch = tree_node.add(label)
+                
+                if parent_genome:
+                    annotated_genes, mutation_score = self._get_aligned_genes(parent_genome, node["genome"])
+                    new_branch.add(f"[bold red]Mutation Score: {mutation_score}[/bold red]")
+                    for line in annotated_genes:
+                        new_branch.add(line)
                     
                 for child in node["children"]:
-                    traverse(child, new_branch, node["height"])
+                    traverse(child, new_branch, node["genome"], node["height"])
                     
         for child in root_cluster["children"]:
-            traverse(child, root_tree, root_cluster["height"])
+            traverse(child, root_tree, root_cluster["genome"], root_cluster["height"])
             
         return root_tree
+
+    def infer_ancestor(self, ancestor_id: str, g1: Genome, g2: Genome) -> Genome:
+        """Infers the hypothetical common ancestor sequence from two child genomes using sequence alignment."""
+        seq1 = g1.genes
+        seq2 = g2.genes
+        
+        n, m = len(seq1), len(seq2)
+        dp = np.zeros((n + 1, m + 1), dtype=float)
+        for i in range(n + 1): dp[i][0] = float(i)
+        for j in range(m + 1): dp[0][j] = float(j)
+            
+        for i in range(1, n + 1):
+            for j in range(1, m + 1):
+                c1 = seq1[i-1]
+                c2 = seq2[j-1]
+                if c1.technique_id == c2.technique_id:
+                    cost = 0.0
+                elif c1.tactic == c2.tactic:
+                    cost = 0.5
+                else:
+                    cost = 1.0
+                dp[i][j] = min(dp[i-1][j]+1.0, dp[i][j-1]+1.0, dp[i-1][j-1]+cost)
+                
+        # Traceback to build ancestral genes
+        ancestral_genes = []
+        i, j = n, m
+        
+        while i > 0 or j > 0:
+            if i > 0 and j > 0 and seq1[i-1].technique_id == seq2[j-1].technique_id:
+                ancestral_genes.append(seq1[i-1])
+                i -= 1; j -= 1
+            elif i > 0 and j > 0 and dp[i][j] < dp[i-1][j] + 1.0 and dp[i][j] < dp[i][j-1] + 1.0:
+                if seq1[i-1].tactic == seq2[j-1].tactic:
+                    ancestral_genes.append(seq1[i-1])
+                i -= 1; j -= 1
+            elif i > 0 and dp[i][j] == dp[i-1][j] + 1:
+                i -= 1
+            else:
+                j -= 1
+                
+        return Genome(
+            id=ancestor_id, 
+            name="Hypothetical Ancestor", 
+            description="Inferred via Ancestral Sequence Reconstruction", 
+            created=min(g1.created, g2.created), 
+            genes=ancestral_genes[::-1]
+        )

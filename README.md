@@ -36,12 +36,11 @@ CyberPhylogeny maps standard cybersecurity ideas into a 4-tier biological ontolo
 
 To elevate this framework beyond a heuristic analogy, we rely on formal mathematical definitions:
 
-* **Genome ($G$)**: An ordered sequence of computationally meaningful genes: $G = [g_1, g_2, \dots, g_n]$.
-* **Mutation ($\Delta(G_1, G_2)$)**: The specific genetic changes (Insertions, Deletions, Substitutions) required to transform $G_1$ into $G_2$.
-* **Distance ($D(G_1, G_2)$)**: The tactical distance between two genomes. Instead of binary pattern matching, we calculate evolutionary distance using a biological **Weighted Sequence Alignment** algorithm. 
-  * *Score Calculation:* `0.0` (Exact Match), `0.5` (Same-Tactic Substitution), `1.0` (Insertion/Deletion/Cross-Tactic Substitution).
-* **Prediction**: Using the **Smith-Waterman** algorithm for optimal local sequence alignment to generate distance metrics, which are then fed into a **k-Nearest Neighbors (KNN)** probabilistic prediction engine to estimate the attacker's next move.
-* **Family ($F$)**: A density-based cluster of genomes where the distance $D$ is less than a threshold $\epsilon$: $F = \{ G \mid D(G_1, G_2) < \epsilon \}$.
+- **Genome (G)**: An ordered sequence of genes. `G = [g1, g2, g3, ..., gn]`
+- **Distance (D(G1, G2))**: The mathematical distance between two genomes using a Weighted Sequence Alignment algorithm with hierarchical taxonomic penalties.
+- **Local Alignment (Prediction)**: Using the Smith-Waterman algorithm to mathematically discover optimal local subsequence matches to predict subsequent evolutionary steps.
+- **Mutation (Δ(G1, G2))**: The specific genetic changes (Insertions, Deletions, Substitutions) that turn `G1` into `G2`.
+- **Family (F)**: A density-based cluster of genomes where the distance `D` is less than a threshold `ϵ`. `F = { G | D(G1, G2) < ϵ }`
 
 ## The Novel Contribution: Beyond Pattern Matching
 
