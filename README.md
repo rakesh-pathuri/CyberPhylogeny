@@ -165,7 +165,7 @@ Generation : 3
 **2. Multi-Stage Clustering** 
 Groups attacks into families based on Sequence Alignment.
 ```bash
-python main.py cluster --eps 0.6 --min_samples 2
+python main.py cluster --eps 0.45 --min_samples 2
 ```
 *Example Output:*
 ```text
