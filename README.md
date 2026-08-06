@@ -197,16 +197,16 @@ Mutations
 
 [Execution]
   [~] Windows Command Shell -> Scheduled Task
-  [+] Malicious File (New Tactic Shift from persistence)
++ [+] Malicious File (New Tactic Shift from persistence)
 
 [Persistence]
-  [-] Windows Service (Dropped Tactic Shift)
+- [-] Windows Service (Dropped Tactic Shift)
 
 [Privilege-Escalation]
-  [+] Bypass User Account Control (New Tactic Shift from discovery)
++ [+] Bypass User Account Control (New Tactic Shift from discovery)
 
 [Discovery]
-  [-] File and Directory Discovery (Dropped Tactic Shift)
+- [-] File and Directory Discovery (Dropped Tactic Shift)
 
 [Command-And-Control]
   [~] Proxy -> Web Protocols
@@ -214,12 +214,12 @@ Mutations
 [Stealth]
   [~] Encrypted/Encoded File -> Software Packing
   [~] Process Injection -> Masquerade Task or Service
-  [+] Indicator Removal (New Gene)
++ [+] Indicator Removal (New Gene)
   [~] Deobfuscate/Decode Files or Information -> System Checks
 
 [Defense-Impairment]
-  [+] Modify Registry (New Gene)
-  [+] Code Signing (New Gene)
++ [+] Modify Registry (New Gene)
++ [+] Code Signing (New Gene)
 ```
 
 **5. Ancestry Trace**
