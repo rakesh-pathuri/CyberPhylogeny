@@ -169,12 +169,6 @@ Estimates the attacker's most probable next behavioral gene.
 python main.py predict T1566.001,T1059.001
 ```
 
-**5. Visual Dashboard** 
-Generates an interactive Web Application and serves it locally to visualize the generated Phylogenetic Trees.
-```bash
-python main.py dashboard
-```
-
 ---
 ### Authorship & Contributions
 **Author:** Rakesh Pathuri
