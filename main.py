@@ -245,15 +245,18 @@ def cmd_genome(attack_id: str):
     elif family_id == -1:
         console.print("[bold yellow]Status[/bold yellow] : Orphan (No Evolutionary Ancestry Found)")
 
-def cmd_tree(eps: float, min_samples: int, target_family: int, algo: str):
+def cmd_tree(eps: float, min_samples: int, eps_s3: float, stage: int, target_family: int, algo: str):
     """Generates a Phylogenetic Tree for a family."""
     genomes = get_cached_genomes()
     
     sim_engine = SimilarityEngine(genomes)
-    families, _ = sim_engine._cluster_with_metric(genomes, metric_type="alignment_genes", eps=eps, min_samples=min_samples)
+    f1, f2, f3, _ = sim_engine.run_multi_stage_pipeline(eps=eps, min_samples=min_samples, eps_s3=eps_s3)
+    
+    stages = {1: f1, 2: f2, 3: f3}
+    families = stages[stage]
     
     if target_family not in families:
-        console.print(f"[red]Family {target_family} not found in Stage 1.[/red]")
+        console.print(f"[red]Family {target_family} not found in Stage {stage}.[/red]")
         return
         
     if target_family == -1:
@@ -263,7 +266,7 @@ def cmd_tree(eps: float, min_samples: int, target_family: int, algo: str):
     family_genomes = families[target_family]
     evo_engine = EvolutionEngine(genomes)
     
-    console.print(f"\n[bold cyan]Phylogenetic Tree for Family {target_family} ({len(family_genomes)} variants)[/bold cyan]")
+    console.print(f"\n[bold cyan]Phylogenetic Tree for Family {target_family} (Stage {stage}) ({len(family_genomes)} variants)[/bold cyan]")
     console.print(f"[dim]Algorithm: {algo.upper()}[/dim]")
     
     if algo.lower() == "upgma":
@@ -403,7 +406,9 @@ if __name__ == "__main__":
     parser_tree = subparsers.add_parser("tree", help="Build a Phylogenetic Tree for a specific family")
     parser_tree.add_argument("family", type=str, help="Family ID to trace (e.g., '24')")
     parser_tree.add_argument("--algo", type=str, default="mst", choices=["mst", "upgma"], help="Algorithm to build tree (mst or upgma)")
-    parser_tree.add_argument("--eps", type=float, default=0.45, help="DBSCAN epsilon used for clustering")
+    parser_tree.add_argument("--stage", type=int, default=3, choices=[1, 2, 3], help="Stage to pull the family from (default: 3)")
+    parser_tree.add_argument("--eps", type=float, default=0.45, help="DBSCAN epsilon used for Stage 1/2 clustering")
+    parser_tree.add_argument("--eps3", type=float, default=0.65, help="DBSCAN epsilon used for Stage 3 clustering")
     parser_tree.add_argument("--min_samples", type=int, default=2, help="Minimum samples used for clustering")
     
     # 5. Predict
@@ -432,7 +437,7 @@ if __name__ == "__main__":
     elif args.command == "genome":
         cmd_genome(args.attack_id)
     elif args.command == "tree":
-        cmd_tree(args.eps, args.min_samples, int(args.family), args.algo)
+        cmd_tree(args.eps, args.min_samples, args.eps3, args.stage, int(args.family), args.algo)
     elif args.command == "predict":
         cmd_predict(args.sequence, args.k)
     elif args.command == "diff":
