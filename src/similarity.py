@@ -119,11 +119,12 @@ class SimilarityEngine:
         if metric_type == "levenshtein_genes":
             console.print("[dim]Applying MinHash LSH pre-filtering...[/dim]")
             num_hashes = 20
-            bands = 5
+            bands = 10
             rows = num_hashes // bands
             buckets = defaultdict(list)
             for i in range(n):
-                sig = get_minhash_signature({g.technique_id for g in genomes[i].genes}, num_hashes)
+                # Use behavior rather than strict technique_id to align with biological abstraction
+                sig = get_minhash_signature({f"{g.tactic}:{g.behavior}" for g in genomes[i].genes}, num_hashes)
                 for b in range(bands):
                     buckets[(b, tuple(sig[b*rows:(b+1)*rows]))].append(i)
                     

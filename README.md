@@ -166,39 +166,6 @@ Groups attacks into families based on Sequence Alignment.
 ```bash
 python main.py cluster --eps 0.6 --min_samples 2
 ```
-*Example Output:*
-```text
-Loading cached ATT&CK Genome Repository...
-
---- STAGE 1: Sequence Alignment (Needleman-Wunsch) ---
-Applying MinHash LSH pre-filtering...
-Calculating distances (Weighted Sequence Alignment)... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
-
---- STAGE 2: Unordered Motif Matching (Jaccard Similarity) ---
-Analyzing 719 orphans from Stage 1...
-Calculating distances (Jaccard Motif Matching)... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
-
---- STAGE 3: Taxonomic Zooming (Tactic Alignment) ---
-Analyzing 598 orphans from Stage 2...
-Calculating distances (Taxonomic Zooming)... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
-
-STAGE 1: Strict Evolutionary (Levenshtein) Families
-
-Noise (Unclustered Orphans) - 719 attacks
-
-Family 0 - 4 attacks
-┏━━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓
-┃ Attack /     ┃            ┃               ┃
-┃ Group ID     ┃ Name       ┃ Genome Length ┃
-┡━━━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩
-│ G0066        │ Elderwood  │ 9             │
-│ G0021        │ Molerats   │ 16            │
-│ S0585        │ Kerrdown   │ 11            │
-│ S0648        │ JSS Loader │ 7             │
-└──────────────┴────────────┴───────────────┘
-
-... (Output truncated) ...
-```
 
 **3. Phylogenetic Terminal Tree (Topology)** 
 Prints a clean mathematical dendrogram showing relationships and branch heights. Supports two algorithms:

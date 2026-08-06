@@ -11,8 +11,7 @@ from src.similarity import SimilarityEngine
 from src.prediction import PredictionEngine
 from src.evolution import EvolutionEngine
 
-# Force colors on Windows PowerShell
-console = Console(force_terminal=True, color_system="standard")
+console = Console()
 
 def cmd_ingest():
     engine, session = init_db()
@@ -48,7 +47,7 @@ def cmd_cluster(eps: float, min_samples: int):
                 table.add_row(g.id, g.name, str(len(g.genes)))
             console.print(table)
             
-    print_families(f1, "STAGE 1: Strict Evolutionary (Levenshtein)")
+    print_families(f1, "STAGE 1: Strict Evolutionary (Weighted Sequence Alignment)")
     if f2 and len(f2) > 1: # More than just orphans
         print_families(f2, "STAGE 2: Unordered Motif (Jaccard)")
     if f3 and len(f3) > 1:

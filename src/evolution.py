@@ -400,21 +400,21 @@ class EvolutionEngine:
                 new_g = descendant.genes[j-1]
                 if old_g.tactic == new_g.tactic:
                     mutation_score += 0.5
-                    ops.append((new_g.tactic, f"[yellow]\\[~] {old_g.implementation} -> {new_g.implementation}[/yellow]"))
+                    ops.append((new_g.tactic, f"[yellow]\\[~][/yellow] {old_g.implementation} -> {new_g.implementation}"))
                 else:
                     mutation_score += 1.0
-                    ops.append((old_g.tactic, f"[red]\\[-] {old_g.implementation} (Dropped Tactic Shift)[/red]"))
-                    ops.append((new_g.tactic, f"[green]\\[+] {new_g.implementation} (New Tactic Shift from {old_g.tactic})[/green]"))
+                    ops.append((old_g.tactic, f"[red]\\[-][/red] {old_g.implementation} [dim](Dropped Tactic Shift)[/dim]"))
+                    ops.append((new_g.tactic, f"[green]\\[+][/green] {new_g.implementation} [dim](New Tactic Shift from {old_g.tactic})[/dim]"))
                 i -= 1; j -= 1
             elif i > 0 and dp[i][j] == dp[i-1][j] + 1:
                 mutation_score += 1.0
                 old_g = ancestor.genes[i-1]
-                ops.append((old_g.tactic, f"[red]\\[-] {old_g.implementation} (Dropped)[/red]"))
+                ops.append((old_g.tactic, f"[red]\\[-][/red] {old_g.implementation} [dim](Dropped)[/dim]"))
                 i -= 1
             else:
                 mutation_score += 1.0
                 new_g = descendant.genes[j-1]
-                ops.append((new_g.tactic, f"[green]\\[+] {new_g.implementation} (New Gene)[/green]"))
+                ops.append((new_g.tactic, f"[green]\\[+][/green] {new_g.implementation} [dim](New Gene)[/dim]"))
                 j -= 1
                 
         ops.reverse()
