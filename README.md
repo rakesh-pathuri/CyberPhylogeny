@@ -40,7 +40,7 @@ CyberPhylogeny maps standard cybersecurity ideas into a 4-tier biological ontolo
 This research framework relies on the following core concepts to model attacks:
 
 * **Genome**: The complete, ordered sequence of genes (techniques) that makes up an entire cyberattack.
-* **Distance**: How different two genomes are from each other. Instead of just checking if they match exactly, we use a biological "Weighted Sequence Alignment" algorithm to score them based on how closely related their tactics and behaviors are.
+* **Distance**: How different two genomes are from each other. Instead of just checking if they match exactly, we use a biological "Weighted Sequence Alignment" algorithm to score them based on how closely related their tactics and behaviors are. The **Score Calculation** is as follows: `0.0` for an Exact Match, `0.5` for a Substitution within the same Tactic, and `1.0` for an Insertion, Deletion, or cross-Tactic Substitution.
 * **Prediction**: Using a biological algorithm called "Smith-Waterman" to find the strongest matching patterns in historical attacks, which allows us to predict what the attacker might do next.
 * **Mutation**: The exact changes an attacker made to evolve their attack (e.g., Inserting a new technique, Deleting an old one, or Substituting one technique for another).
 * **Family**: A group of attacks (genomes) that are grouped together because their "Distance" is very small, meaning they likely share the same origin or threat actor.

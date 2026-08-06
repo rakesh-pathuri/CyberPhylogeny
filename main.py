@@ -175,7 +175,7 @@ def cmd_tree(eps: float, min_samples: int, target_family: int):
     console.print(terminal_tree)
     
     # Note instead of Legend Table
-    console.print("[dim italic]* Cost Model: 0.0 (Exact Match) | 0.5 (Same Tactic, Diff Technique) | 1.0 (Insertion/Deletion/Tactic Shift)[/dim italic]")
+    console.print("[dim italic]* Score Calculation: 0.0 (Exact Match) | 0.5 (Substitution within same Tactic) | 1.0 (Insertion / Deletion / Cross-Tactic Substitution)[/dim italic]")
     console.print()
     
 
