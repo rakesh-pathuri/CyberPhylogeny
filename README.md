@@ -150,54 +150,18 @@ python main.py tree 24
 ```
 *Example Output:*
 ```text
-Phylogenetic Tree for Family 24 (3 variants)
+Phylogenetic Tree for Family 24 (2 variants)
 Evolutionary Tree
 ├── Ancestor: S0263 (TYPEFRAME)
 │   ├── [execution] Command and Scripting Interpreter: Windows Command Shell
-│   ├── [execution] Command and Scripting Interpreter: Visual Basic
 │   ├── [execution] User Execution: Malicious File
 │   ├── [persistence] Create or Modify System Process: Windows Service
-│   ├── [discovery] File and Directory Discovery: File and Directory Discovery
-│   ├── [discovery] Local Storage Discovery: Local Storage Discovery
-│   ├── [command-and-control] Proxy: Proxy
-│   ├── [command-and-control] Ingress Tool Transfer: Ingress Tool Transfer
-│   ├── [command-and-control] Non-Standard Port: Non-Standard Port
-│   ├── [stealth] Obfuscated Files or Information: Fileless Storage
-│   ├── [stealth] Obfuscated Files or Information: Encrypted/Encoded File
-│   ├── [stealth] Indicator Removal: File Deletion
-│   ├── [defense-impairment] Modify Registry: Modify Registry
-│   ├── [stealth] Deobfuscate/Decode Files or Information: Deobfuscate/Decode Files or Information
-│   └── [defense-impairment] Disable or Modify System Firewall: Windows Host Firewall
-├── Descendant: S0347 (AuditCred) (Evolved from S0263)
-│   ├── Mutation Score: 7.0
-│   ├──                    | [execution] Command and Scripting Interpreter: Windows Command Shell
-│   ├── Type: Deletion     | [execution] Command and Scripting Interpreter: Visual Basic <-- Dropped
-│   ├── Type: Deletion     | [execution] User Execution: Malicious File <-- Dropped
-│   ├──                    | [persistence] Create or Modify System Process: Windows Service
-│   ├──                    | [discovery] File and Directory Discovery: File and Directory Discovery
-│   ├── Type: Deletion     | [discovery] Local Storage Discovery: Local Storage Discovery <-- Dropped
-│   ├──                    | [command-and-control] Proxy: Proxy
-│   ├──                    | [command-and-control] Ingress Tool Transfer: Ingress Tool Transfer
-│   ├── Type: Deletion     | [command-and-control] Non-Standard Port: Non-Standard Port <-- Dropped
-│   ├── Type: Substitution | [stealth] Obfuscated Files or Information: Encrypted/Encoded File <-- Mutated (from Fileless Storage)
-│   ├── Type: Substitution | [stealth] Process Injection: Process Injection <-- Mutated (from Encrypted/Encoded File)
-│   ├──                    | [stealth] Indicator Removal: File Deletion
-│   ├── Type: Deletion     | [defense-impairment] Modify Registry: Modify Registry <-- Dropped
-│   ├──                    | [stealth] Deobfuscate/Decode Files or Information: Deobfuscate/Decode Files or Information
-│   └── Type: Deletion     | [defense-impairment] Disable or Modify System Firewall: Windows Host Firewall <-- Dropped
-└── Descendant: S0527 (CSPY Downloader) (Evolved from S0347)
+│   └── [discovery] File and Directory Discovery: File and Directory Discovery
+└── Descendant: S0527 (CSPY Downloader) (Evolved from S0263)
     ├── Mutation Score: 7.5
     ├── Type: Substitution | [execution] Scheduled Task/Job: Scheduled Task <-- Mutated (from Windows Command Shell)
     ├── Type: Tactic Shift | [execution] User Execution: Malicious File <-- Tactic Shift (from [persistence] Windows Service)
     ├── Type: Tactic Shift | [privilege-escalation] Abuse Elevation Control Mechanism: Bypass User Account Control <-- Tactic Shift (from [discovery] File and Directory Discovery)
-    ├── Type: Substitution | [command-and-control] Application Layer Protocol: Web Protocols <-- Mutated (from Proxy)
-    ├──                    | [command-and-control] Ingress Tool Transfer: Ingress Tool Transfer
-    ├── Type: Substitution | [stealth] Obfuscated Files or Information: Software Packing <-- Mutated (from Encrypted/Encoded File)
-    ├── Type: Substitution | [stealth] Masquerading: Masquerade Task or Service <-- Mutated (from Process Injection)
-    ├── Type: Insertion    | [stealth] Indicator Removal: Indicator Removal <-- New Gene
-    ├──                    | [stealth] Indicator Removal: File Deletion
-    ├── Type: Insertion    | [defense-impairment] Modify Registry: Modify Registry <-- New Gene
-    ├── Type: Substitution | [stealth] Virtualization/Sandbox Evasion: System Checks <-- Mutated (from Deobfuscate/Decode Files or Information)
     └── Type: Insertion    | [defense-impairment] Subvert Trust Controls: Code Signing <-- New Gene
 * Score Calculation: 0.0 (Exact Match) | 0.5 (Substitution within same Tactic) | 1.0 (Insertion / Deletion / Cross-Tactic Substitution)
 ```
@@ -206,6 +170,20 @@ Evolutionary Tree
 Estimates the attacker's most probable next behavioral gene.
 ```bash
 python main.py predict T1566.001,T1059.001
+```
+*Example Output:*
+```text
+Ongoing Attack Sequence: ['T1566.001', 'T1059.001']
+
+Most Probable Next Behaviors:
++-------------------------------------------------------------------------------------------------+
+| Technique ID | Implementation        | Behavior              | Tactic    | Prob   | Confidence  |
+|--------------+-----------------------+-----------------------+-----------+--------+-------------|
+| T1059.003    | Windows Command Shell | Command and Scripting | execution | 33.3%  | 6.00x       |
+| T1204.002    | Malicious File        | User Execution        | execution | 33.3%  | 6.00x       |
+| T1059.005    | Visual Basic          | Command and Scripting | execution | 33.3%  | 6.00x       |
++-------------------------------------------------------------------------------------------------+
+* Confidence Score represents the mathematical similarity of the historical sequence matched.
 ```
 
 ---
