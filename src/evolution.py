@@ -129,9 +129,9 @@ class EvolutionEngine:
                 aligned.append(f"                   | \\[{gene.tactic}] {gene.behavior}: {gene.implementation}")
                 i -= 1; j -= 1
             elif i > 0 and j > 0 and dp[i][j] < dp[i-1][j] + 1.0 and dp[i][j] < dp[i][j-1] + 1.0:
-                mutation_score += 1.0
                 old_g = ancestor.genes[i-1]
                 new_g = descendant.genes[j-1]
+                mutation_score += 0.5 if old_g.tactic == new_g.tactic else 1.0
                 aligned.append(f"Type: Substitution | \\[{new_g.tactic}] {new_g.behavior}: {new_g.implementation} [red]<-- Mutated (from {old_g.implementation})[/red]")
                 i -= 1; j -= 1
             elif i > 0 and dp[i][j] == dp[i-1][j] + 1:
