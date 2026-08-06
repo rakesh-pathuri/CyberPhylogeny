@@ -197,7 +197,7 @@ def cmd_genome(attack_id: str):
             family_id = label
             break
             
-    if target_family:
+    if target_family and family_id != -1:
         n = len(target_family)
         import numpy as np
         from src.similarity import sequence_alignment_distance
@@ -242,6 +242,8 @@ def cmd_genome(attack_id: str):
             
         console.print(f"[bold]Family[/bold] : {family_id}")
         console.print(f"[bold]Generation[/bold] : {generation}")
+    elif family_id == -1:
+        console.print("[bold yellow]Status[/bold yellow] : Orphan (No Evolutionary Ancestry Found)")
 
 def cmd_tree(eps: float, min_samples: int, target_family: int, algo: str):
     """Generates a Phylogenetic Tree for a family."""
@@ -252,6 +254,10 @@ def cmd_tree(eps: float, min_samples: int, target_family: int, algo: str):
     
     if target_family not in families:
         console.print(f"[red]Family {target_family} not found in Stage 1.[/red]")
+        return
+        
+    if target_family == -1:
+        console.print("[red]Cannot generate a phylogenetic tree for the Noise/Orphan cluster (-1).[/red]")
         return
         
     family_genomes = families[target_family]
