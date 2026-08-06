@@ -119,18 +119,38 @@ python main.py genome S0697
 ```
 *Example Output:*
 ```text
-Attack Genome : HermeticWiper (S0697)
+Loading cached ATT&CK Genome Repository...
+
+Attack Genome : CSPY Downloader (S0527)
 
 Execution
- ├── Scheduled Task
- ├── Windows Command Shell
- ├── Native API
- ...
+├── Scheduled Task
+└── Malicious File
 
-Genome Size : 26 Genes
-Mutation Index : 2.5
-Family : 18
-Generation : 2
+Privilege-Escalation
+└── Bypass User Account Control
+
+Command-And-Control
+├── Web Protocols
+└── Ingress Tool Transfer
+
+Stealth
+├── Software Packing
+├── Masquerade Task or Service
+├── Indicator Removal
+├── File Deletion
+└── System Checks
+
+Defense-Impairment
+├── Modify Registry
+└── Code Signing
+
+Genome Size : 12 Genes
+Applying MinHash LSH pre-filtering...
+Calculating distances (Weighted Sequence Alignment)... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
+Mutation Index : 7.5
+Family : 24
+Generation : 3
 ```
 
 **2. Multi-Stage Clustering** 
@@ -148,13 +168,17 @@ python main.py tree 24 --algo upgma
 ```
 *Example Output:*
 ```text
+Loading cached ATT&CK Genome Repository...
+Applying MinHash LSH pre-filtering...
+Calculating distances (Weighted Sequence Alignment)... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
+
 Phylogenetic Tree for Family 24 (3 variants)
 Algorithm: UPGMA
 UPGMA Dendrogram (Root Height: 3.88)
-+-- ------------------- S0527 (CSPY Downloader) (branch: 3.88)
-`-- - Common Ancestor (height: 3.50, branch: 0.38)
-    +-- ----------------- S0347 (AuditCred) (branch: 3.50)
-    `-- ----------------- S0263 (TYPEFRAME) (branch: 3.50)
+├── ------------------- S0527 (CSPY Downloader) (branch: 3.88)
+└── - Common Ancestor (height: 3.50, branch: 0.38)
+    ├── ----------------- S0347 (AuditCred) (branch: 3.50)
+    └── ----------------- S0263 (TYPEFRAME) (branch: 3.50)
 ```
 
 **4. Mutation Diff (Forensic Report)**
@@ -163,7 +187,9 @@ Outputs a highly formatted, tactic-grouped report showing exactly what was inser
 python main.py diff S0347 S0527
 ```
 *Example Output:*
-```text
+```diff
+Loading cached ATT&CK Genome Repository...
+
 Attack : S0527 (CSPY Downloader)
 Mutation Distance : 7.5
 
@@ -171,10 +197,29 @@ Mutations
 
 [Execution]
   [~] Windows Command Shell -> Scheduled Task
-  [~] Windows Service (from persistence) -> Malicious File
+  [+] Malicious File (New Tactic Shift from persistence)
+
+[Persistence]
+  [-] Windows Service (Dropped Tactic Shift)
 
 [Privilege-Escalation]
-  [~] File and Directory Discovery (from discovery) -> Bypass User Account Control
+  [+] Bypass User Account Control (New Tactic Shift from discovery)
+
+[Discovery]
+  [-] File and Directory Discovery (Dropped Tactic Shift)
+
+[Command-And-Control]
+  [~] Proxy -> Web Protocols
+
+[Stealth]
+  [~] Encrypted/Encoded File -> Software Packing
+  [~] Process Injection -> Masquerade Task or Service
+  [+] Indicator Removal (New Gene)
+  [~] Deobfuscate/Decode Files or Information -> System Checks
+
+[Defense-Impairment]
+  [+] Modify Registry (New Gene)
+  [+] Code Signing (New Gene)
 ```
 
 **5. Ancestry Trace**
@@ -184,6 +229,10 @@ python main.py ancestry S0527
 ```
 *Example Output:*
 ```text
+Loading cached ATT&CK Genome Repository...
+Applying MinHash LSH pre-filtering...
+Calculating distances (Weighted Sequence Alignment)... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
+
 Ancestry for S0527
 S0263 (TYPEFRAME)
   | (distance = 7.00)
