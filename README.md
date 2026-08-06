@@ -21,24 +21,25 @@ This framework was built to explore the following open questions in proactive cy
 
 CyberPhylogeny maps standard cybersecurity ideas into a 4-tier biological ontology. To make a "gene" computationally meaningful rather than just a metadata tag, we define it by its function, inputs, and outputs:
 
-- **Gene:** A specific, atomic operation in an attack sequence.
+- **Gene:** A specific, atomic computational operation in an attack sequence.
   ```text
-  Function (Tactic)             → Credential Access
-  Inputs/Outputs (Behavior)     → OS Credential Dumping
-  Execution (Implementation)    → LSASS Memory
-  MITRE ID (Reference)          → T1003.001
+  Identifier                  → G17
+  Semantic Function (Tactic)  → Credential Access
+  Preconditions               → Code Execution on Target
+  Postconditions              → Extracted plaintext credentials/hashes
+  Allowed Implementations     → LSASS Memory, NTDS.dit, DCSync
   ```
 - **Genome:** The ordered sequence of Genes that makes up a complete cyberattack. While modern attacks may involve branching or retries, an individual **execution trace** (a specific instance of an attack) is a linear temporal path. The Genome models this trace.
 - **Evolutionary Family:** A group of Genomes that share a common ancestor.
-- **Phylogenetic Tree:** A branching graph constructed using **Maximum Parsimony** (approximated via Minimum Spanning Trees) to infer the most likely evolutionary lineage by minimizing the total number of required mutations.
+- **Phylogenetic Tree:** A branching graph constructed to infer the most likely evolutionary lineage. While computing true Maximum Parsimony is NP-hard (equivalent to the Steiner Tree problem), CyberPhylogeny utilizes **Minimum Spanning Trees (MST)** as a computationally tractable 2-approximation, assuming the triangle inequality holds across the mutation distance space.
 
 ## Formalization & Core Concepts
 
 To elevate this framework beyond a heuristic analogy, we rely on formal mathematical definitions:
 
 - **Genome (G)**: An ordered sequence of genes. `G = [g1, g2, g3, ..., gn]`
-- **Distance (D(G1, G2))**: The mathematical distance between two genomes using a Weighted Sequence Alignment algorithm with hierarchical taxonomic penalties.
-- **Local Alignment (Prediction)**: Using the Smith-Waterman algorithm to mathematically discover optimal local subsequence matches to predict subsequent evolutionary steps.
+- **Evolutionary Distance (D(G1, G2))**: The mathematical distance between two genomes. Because cyberattack traces are inherently discrete, ordered, temporal sequences, CyberPhylogeny utilizes **Weighted Sequence Alignment** with hierarchical taxonomic penalties. This was chosen over Graph Edit Distance (which ignores temporal ordering) and Dynamic Time Warping (which is suited for continuous signals) because it perfectly homologous to biological sequence alignment while remaining computationally tractable.
+- **Local Alignment**: Using the Smith-Waterman algorithm to mathematically discover optimal local subsequence alignments. This identifies the most similar historical subsequences, which are then used by the KNN engine for prediction.
 - **Mutation (Δ(G1, G2))**: The specific genetic changes (Insertions, Deletions, Substitutions) that turn `G1` into `G2`.
 - **Family (F)**: A density-based cluster of genomes where the distance `D` is less than a threshold `ϵ`. `F = { G | D(G1, G2) < ϵ }`
 
@@ -46,10 +47,10 @@ To elevate this framework beyond a heuristic analogy, we rely on formal mathemat
 
 Why model attacks as evolving genomes instead of simply comparing ATT&CK sequences? Standard Threat Intelligence tools fail when faced with polymorphism because they treat a substitution of `PowerShell` to `Python` as a 100% miss. CyberPhylogeny introduces a new approach by shifting focus from **similarity** to **ancestry**:
 
-1. **From Similarity to Ancestry:** Traditional systems compare two lists of techniques and give a similarity score (e.g., "85% match"). CyberPhylogeny reconstructs *ancestry*: "Attack B evolved from Attack A, and here is the exact branch where it mutated."
-2. **Biological Abstraction:** By treating techniques as computational Genes, CyberPhylogeny mathematically understands that changing PowerShell to Python is *not* a new attack—it is just a tactical **mutation** preserving the same underlying function.
+1. **From Similarity to Lineage Inference:** Traditional systems compare two lists of techniques and give a static similarity score (e.g., "85% match"). CyberPhylogeny's true novelty is reconstructing *ancestry*. It infers the most parsimonious lineage, estimating how an attack evolved and identifying the exact branch where it mutated.
+2. **Biological Abstraction:** By treating techniques as computational Genes, CyberPhylogeny mathematically tracks tactical mutations preserving the same underlying function, abstracting away polymorphic noise.
 3. **Maximum Parsimony vs. Chronology:** Real evolution is driven by accumulating mutations, not just the passage of time. CyberPhylogeny uses chronological timestamps only as a *directional constraint* (a descendant cannot predate its ancestor) while relying on **Maximum Parsimony** (MST) to determine the actual evolutionary lineage.
-4. **Predictive Alignment:** CTI tools are reactive. CyberPhylogeny utilizes local sequence alignment (Smith-Waterman) to accurately align ongoing, incomplete attack sequences against historical genomes, which feeds our KNN engine to predict the next move even if the attacker skips steps.
+4. **Predictive Alignment:** CTI tools are typically reactive. CyberPhylogeny utilizes local sequence alignment (Smith-Waterman) to accurately align ongoing, incomplete attack sequences against historical genomes. These alignments identify the most similar historical subsequences, which then feed our KNN engine to probabilistically estimate the next move.
 5. **Algorithmic Scalability:** Features a custom **MinHash LSH** pass to instantly filter and bucket genomes before running the heavy comparison math, making the framework extremely fast.
 
 ## Project Architecture (Multi-Stage Pipeline)
