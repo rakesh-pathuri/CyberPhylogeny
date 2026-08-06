@@ -11,7 +11,8 @@ from src.similarity import SimilarityEngine
 from src.prediction import PredictionEngine
 from src.evolution import EvolutionEngine
 
-console = Console()
+# Force colors on Windows PowerShell
+console = Console(force_terminal=True, color_system="standard")
 
 def cmd_ingest():
     engine, session = init_db()
