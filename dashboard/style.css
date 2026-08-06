@@ -23,131 +23,222 @@ body {
     overflow: hidden;
 }
 
-/* Technical Brutalism Grid System */
-.grid-container {
-    display: grid;
-    grid-template-columns: 300px 1fr;
-    grid-template-rows: auto 1fr auto;
+.app-container {
+    display: flex;
+    flex-direction: column;
     height: 100vh;
-    gap: 2px;
-    background-color: var(--border-color); /* The gap forms the grid lines */
 }
 
 .brutal-box {
     background-color: var(--bg-color);
     padding: 20px;
+    border: 1px solid var(--border-color);
 }
 
-/* Header */
+/* Header & Nav */
 .header {
-    grid-column: 1 / -1;
-    border-bottom: 2px solid var(--border-color);
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-end;
+    border-bottom: 2px solid var(--border-color);
 }
 
-.header h1 {
+.logo h1 {
     font-size: 24px;
     font-weight: 900;
     letter-spacing: 2px;
 }
-
-.header h1 span {
+.logo h1 span {
     color: var(--accent);
     font-family: var(--font-mono);
     font-size: 14px;
 }
-
-.header p {
+.logo p {
     font-family: var(--font-mono);
     font-size: 12px;
     color: #888;
 }
 
-/* Sidebar */
-.sidebar {
-    border-right: 2px solid var(--border-color);
+.nav-tabs {
     display: flex;
-    flex-direction: column;
-    overflow-y: auto;
-}
-
-.sidebar h2 {
-    font-family: var(--font-mono);
-    font-size: 16px;
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 10px;
-    margin-bottom: 20px;
-    color: var(--accent);
-}
-
-.list-container {
-    display: flex;
-    flex-direction: column;
     gap: 10px;
 }
 
-.family-btn {
+.tab-btn {
     background: transparent;
     border: 1px solid var(--border-color);
     color: var(--text-primary);
-    padding: 12px;
+    padding: 10px 20px;
     font-family: var(--font-mono);
     font-size: 14px;
-    text-align: left;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
-.family-btn:hover {
+.tab-btn:hover {
+    background: #222;
+    border-color: var(--accent);
+}
+
+.tab-btn.active {
     background: var(--accent);
     color: #000;
     border-color: var(--accent);
 }
 
-.family-btn.active {
-    background: var(--text-primary);
-    color: #000;
-    border-color: var(--text-primary);
+/* Main Content Area */
+.tab-content {
+    display: none;
+    flex-grow: 1;
+    overflow-y: auto;
+}
+.tab-content.active {
+    display: block;
 }
 
-/* Main Content */
-.main-content {
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
+h2 {
+    font-weight: 900;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
-.tree-header {
+/* Inputs & Forms */
+.input-group {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 15px;
+    gap: 10px;
     margin-bottom: 20px;
 }
 
-.tree-header h2 {
-    font-weight: 700;
+input[type="text"] {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--accent);
+    padding: 10px 15px;
+    font-family: var(--font-mono);
+    font-size: 16px;
+    width: 300px;
+    outline: none;
+}
+input[type="text"]:focus {
+    border-color: var(--accent);
 }
 
-.meta-stats {
+button {
+    background: #111;
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 10px 20px;
     font-family: var(--font-mono);
-    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+}
+button:hover {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+}
+
+/* Data Tables */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    margin-top: 10px;
+}
+th, td {
+    border: 1px solid var(--border-color);
+    padding: 12px;
+    text-align: left;
+}
+th {
+    background: #111;
     color: var(--accent);
-    border: 1px solid var(--accent);
-    padding: 4px 8px;
+    font-weight: bold;
+}
+tr:hover td {
+    background: #1a1a1a;
+}
+
+/* Family Grid */
+.family-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+}
+.family-card {
+    border: 1px solid var(--border-color);
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: #111;
+    transition: 0.2s;
+}
+.family-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+}
+.family-card h3 {
+    color: var(--accent);
+    margin-bottom: 5px;
+}
+
+/* Tree Tab Specific Layout */
+.tree-tab-layout {
+    display: grid !important;
+    grid-template-columns: 350px 1fr;
+    gap: 0;
+    padding: 0 !important;
+}
+.tree-controls {
+    padding: 20px;
+}
+.border-right {
+    border-right: 1px solid var(--border-color);
+}
+.tree-display {
+    padding: 20px;
+    background: #050505;
+    overflow: auto;
+    position: relative;
+}
+
+.tree-view {
+    display: none;
+    height: 100%;
+}
+.tree-view.active {
+    display: block;
+}
+
+.ascii-tree {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    line-height: 1.4;
+    color: var(--text-primary);
+    white-space: pre-wrap;
+    background: transparent;
+    padding: 20px;
 }
 
 .mermaid-canvas {
-    flex-grow: 1;
-    overflow: auto;
+    width: 100%;
+    height: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
-    background: #111; /* Slight contrast for the canvas */
+}
+
+/* Utilities */
+.output-container {
     border: 1px solid var(--border-color);
+    padding: 20px;
+    background: #0a0a0a;
+    min-height: 200px;
 }
 
 .placeholder-text {
@@ -158,26 +249,23 @@ body {
 
 /* Footer */
 .footer {
-    grid-column: 1 / -1;
     border-top: 2px solid var(--border-color);
     font-family: var(--font-mono);
     font-size: 12px;
     color: #666;
     display: flex;
     justify-content: space-between;
+    padding: 10px 20px;
 }
-
 .status-ok {
     color: var(--accent);
     font-weight: bold;
 }
 
-/* Animations */
 @keyframes blink {
     0%, 100% { opacity: 1; }
     50% { opacity: 0; }
 }
-
 .blink {
     animation: blink 1s infinite;
 }

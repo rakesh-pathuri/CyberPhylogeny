@@ -4,6 +4,7 @@ import json
 import http.server
 import socketserver
 import os
+import urllib.parse
 from rich.console import Console
 from rich.table import Table
 
@@ -182,39 +183,105 @@ def cmd_tree(eps: float, min_samples: int, target_family: int):
     evo_engine.build_phylogenetic_tree(family_genomes)
 
 def cmd_dashboard():
-    """Generates data.json and serves the visualization dashboard."""
+    """Boots the native REST API Server for the SPA Dashboard."""
+    console.print("[cyan]Loading Knowledge Base for API Server...[/cyan]")
     data = fetch_mitre_data()
     _, genomes = parse_mitre_to_genomes(data)
     
     sim_engine = SimilarityEngine(genomes)
-    # Fast clustering with LSH pre-filtering
+    evo_engine = EvolutionEngine(genomes)
+    pred_engine = PredictionEngine(genomes)
+    
+    # Pre-cluster for speed
     families = sim_engine._cluster_with_metric(genomes, metric_type="levenshtein_genes", eps=0.6, min_samples=2)
     
-    dashboard_data = {}
-    engine = EvolutionEngine(genomes)
-    
-    console.print("[cyan]Generating Mermaid trees for dashboard...[/cyan]")
-    for label, family in families.items():
-        if label == -1 or len(family) < 2: continue
-        mermaid_str = engine.build_phylogenetic_tree(family)
-        dashboard_data[str(label)] = {
-            "size": len(family),
-            "mermaid": mermaid_str
-        }
-        
-    os.makedirs("dashboard", exist_ok=True)
-    with open("dashboard/data.json", "w", encoding="utf-8") as f:
-        json.dump(dashboard_data, f)
-        
-    console.print("[green]Dashboard data generated![/green]")
-    
-    PORT = 8000
+    class APIHandler(http.server.SimpleHTTPRequestHandler):
+        def do_GET(self):
+            if self.path.startswith("/api/"):
+                parsed_path = urllib.parse.urlparse(self.path)
+                query = urllib.parse.parse_qs(parsed_path.query)
+                
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                
+                response_data = {}
+                try:
+                    if parsed_path.path == "/api/genome":
+                        attack_id = query.get("id", [""])[0]
+                        genome = next((g for g in genomes if g.id.lower() == attack_id.lower()), None)
+                        if genome:
+                            genes = []
+                            for g in genome.genes:
+                                genes.append({
+                                    "technique_id": g.technique_id,
+                                    "implementation": g.implementation,
+                                    "behavior": g.behavior,
+                                    "tactic": g.tactic
+                                })
+                            response_data = {"name": genome.name, "genes": genes}
+                        else:
+                            response_data = {"error": "Genome not found"}
+                            
+                    elif parsed_path.path == "/api/cluster":
+                        resp = []
+                        for label, family in families.items():
+                            if label != -1 and len(family) >= 2:
+                                resp.append({"id": str(label), "size": len(family)})
+                        response_data = {"families": resp}
+                        
+                    elif parsed_path.path == "/api/tree":
+                        fid = int(query.get("family", [-1])[0])
+                        if fid in families:
+                            fam = families[fid]
+                            # Clean rich tags from ASCII tree for raw text display
+                            from rich.text import Text
+                            raw_tree = evo_engine.build_terminal_tree(fam)
+                            if isinstance(raw_tree, Text):
+                                raw_tree = raw_tree.plain
+                            # Also remove any ANSI codes just in case
+                            import re
+                            ansi_escape = re.compile(r'(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]')
+                            ascii_str = ansi_escape.sub('', str(raw_tree))
+                            
+                            mermaid_str = evo_engine.build_phylogenetic_tree(fam)
+                            response_data = {"ascii": ascii_str, "mermaid": mermaid_str}
+                        else:
+                            response_data = {"error": "Family not found"}
+                            
+                    elif parsed_path.path == "/api/predict":
+                        seq_str = query.get("seq", [""])[0]
+                        seq_list = [s.strip().upper() for s in seq_str.split(",") if s.strip()]
+                        predictions = pred_engine.predict_next(seq_list, top_k=3)
+                        res = []
+                        for gene, prob, conf in predictions:
+                            res.append({
+                                "technique_id": gene.technique_id,
+                                "implementation": gene.implementation,
+                                "behavior": gene.behavior,
+                                "tactic": gene.tactic,
+                                "probability": f"{prob*100:.1f}%",
+                                "confidence": f"{conf:.2f}x"
+                            })
+                        response_data = {"predictions": res}
+                        
+                except Exception as e:
+                    response_data = {"error": str(e)}
+                    
+                self.wfile.write(json.dumps(response_data).encode("utf-8"))
+                return
+                
+            # Serve static files
+            return super().do_GET()
+
+    PORT = 8080
     web_dir = os.path.join(os.getcwd(), "dashboard")
     os.chdir(web_dir)
     
-    Handler = http.server.SimpleHTTPRequestHandler
-    with socketserver.TCPServer(("", PORT), Handler) as httpd:
-        console.print(f"\n[bold cyan]Serving dashboard at http://localhost:{PORT}[/bold cyan]")
+    # Enable SO_REUSEADDR
+    socketserver.TCPServer.allow_reuse_address = True
+    with socketserver.TCPServer(("", PORT), APIHandler) as httpd:
+        console.print(f"\n[bold cyan]Serving Dashboard & API at http://localhost:{PORT}[/bold cyan]")
         console.print("[dim]Press Ctrl+C to stop.[/dim]")
         try:
             httpd.serve_forever()
