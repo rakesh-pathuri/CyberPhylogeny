@@ -1,5 +1,9 @@
 import argparse
 import sys
+import json
+import http.server
+import socketserver
+import os
 from rich.console import Console
 from rich.table import Table
 
@@ -177,6 +181,46 @@ def cmd_tree(eps: float, min_samples: int, target_family: int):
     # 2. Generate the PyVis/Mermaid files in the background
     evo_engine.build_phylogenetic_tree(family_genomes)
 
+def cmd_dashboard():
+    """Generates data.json and serves the visualization dashboard."""
+    data = fetch_mitre_data()
+    _, genomes = parse_mitre_to_genomes(data)
+    
+    sim_engine = SimilarityEngine(genomes)
+    # Fast clustering with LSH pre-filtering
+    families = sim_engine._cluster_with_metric(genomes, metric_type="levenshtein_genes", eps=0.6, min_samples=2)
+    
+    dashboard_data = {}
+    engine = EvolutionEngine(genomes)
+    
+    console.print("[cyan]Generating Mermaid trees for dashboard...[/cyan]")
+    for label, family in families.items():
+        if label == -1 or len(family) < 2: continue
+        mermaid_str = engine.build_phylogenetic_tree(family)
+        dashboard_data[label] = {
+            "size": len(family),
+            "mermaid": mermaid_str
+        }
+        
+    os.makedirs("dashboard", exist_ok=True)
+    with open("dashboard/data.json", "w", encoding="utf-8") as f:
+        json.dump(dashboard_data, f)
+        
+    console.print("[green]Dashboard data generated![/green]")
+    
+    PORT = 8000
+    web_dir = os.path.join(os.getcwd(), "dashboard")
+    os.chdir(web_dir)
+    
+    Handler = http.server.SimpleHTTPRequestHandler
+    with socketserver.TCPServer(("", PORT), Handler) as httpd:
+        console.print(f"\n[bold cyan]Serving dashboard at http://localhost:{PORT}[/bold cyan]")
+        console.print("[dim]Press Ctrl+C to stop.[/dim]")
+        try:
+            httpd.serve_forever()
+        except KeyboardInterrupt:
+            pass
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="CyberPhylogeny Framework CLI")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
@@ -203,6 +247,9 @@ if __name__ == "__main__":
     parser_predict = subparsers.add_parser("predict", help="Predict next steps of an ongoing attack")
     parser_predict.add_argument("sequence", type=str, help="Comma-separated list of Technique IDs (e.g., 'T1566.001,T1059.001')")
     parser_predict.add_argument("--k", type=int, default=3, help="Number of nearest neighbors to consider")
+
+    # 6. Dashboard
+    parser_dashboard = subparsers.add_parser("dashboard", help="Launch the Web Application Dashboard")
     
     args = parser.parse_args()
     
@@ -216,6 +263,8 @@ if __name__ == "__main__":
         cmd_tree(args.eps, args.min_samples, int(args.family))
     elif args.command == "predict":
         cmd_predict(args.sequence, args.k)
+    elif args.command == "dashboard":
+        cmd_dashboard()
     else:
         parser.print_help()
         sys.exit(1)

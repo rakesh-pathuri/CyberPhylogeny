@@ -3,6 +3,7 @@ import json
 from collections import defaultdict
 from typing import List, Dict, Tuple
 from rich.console import Console
+from datetime import datetime
 from .models import Gene, Genome
 
 console = Console()
@@ -91,10 +92,21 @@ def parse_mitre_to_genomes(data: dict) -> Tuple[List[Gene], List[Genome]]:
                     ext_id = ref.get("external_id")
                     break
             if ext_id:
+                # Parse created timestamp, fallback to now if missing
+                created_str = obj.get("created", "")
+                try:
+                    # Remove trailing Z for Python 3.10 compatibility
+                    if created_str.endswith("Z"):
+                        created_str = created_str[:-1]
+                    created_dt = datetime.fromisoformat(created_str)
+                except ValueError:
+                    created_dt = datetime.now()
+                    
                 groups[obj["id"]] = {
                     "ext_id": ext_id,
                     "name": obj.get("name", "Unknown"),
-                    "description": obj.get("description")
+                    "description": obj.get("description"),
+                    "created": created_dt
                 }
     
     # Second pass: map relationships
@@ -123,6 +135,7 @@ def parse_mitre_to_genomes(data: dict) -> Tuple[List[Gene], List[Genome]]:
             id=group_info["ext_id"],
             name=group_info["name"],
             description=group_info["description"],
+            created=group_info["created"],
             genes=used_genes
         ))
         

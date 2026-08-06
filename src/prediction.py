@@ -2,7 +2,7 @@ from typing import List, Tuple
 from rich.console import Console
 
 from .models import Genome, Gene
-from .similarity import levenshtein_distance
+import numpy as np
 
 console = Console()
 
@@ -27,40 +27,68 @@ class PredictionEngine:
         if not current_sequence:
             return []
             
-        current_len = len(current_sequence)
+        # Resolve string IDs to Gene objects
+        curr_genes = []
+        for gid in current_sequence:
+            g = self.gene_lookup.get(gid)
+            if g: curr_genes.append(g)
+            
+        if not curr_genes:
+            return []
+            
+        current_len = len(curr_genes)
         distances = []
         
         for genome in self.genomes:
-            seq = genome.to_sequence()
-            if len(seq) <= 1:
+            hist_genes = genome.genes
+            if len(hist_genes) <= 1:
                 continue
                 
-            # SEQUENCE ALIGNMENT (Local)
-            # Find the minimum mutation distance between the ongoing sequence 
-            # and ANY continuous subsequence of the same length in the historical genome.
-            min_dist = float('inf')
+            # SMITH-WATERMAN LOCAL ALIGNMENT
+            n = len(hist_genes)
+            m = current_len
+            dp = np.zeros((n + 1, m + 1), dtype=float)
+            
+            max_score = 0.0
             best_next_gene = None
             
-            # Slide window across the historical sequence
-            for i in range(len(seq) - current_len + 1):
-                window = seq[i : i + current_len]
-                # If this window is the very end of the sequence, there is no "next step" to predict
-                if i + current_len >= len(seq):
-                    continue
+            for i in range(1, n + 1):
+                for j in range(1, m + 1):
+                    h_gene = hist_genes[i-1]
+                    c_gene = curr_genes[j-1]
                     
-                dist = levenshtein_distance(current_sequence, window)
-                if dist < min_dist:
-                    min_dist = dist
-                    best_next_gene = seq[i + current_len]
+                    if h_gene.technique_id == c_gene.technique_id:
+                        score = 3.0
+                    elif h_gene.tactic == c_gene.tactic:
+                        score = 1.0
+                    else:
+                        score = -2.0
+                        
+                    val = max(
+                        0.0,
+                        dp[i-1][j-1] + score,
+                        dp[i-1][j] - 1.0,
+                        dp[i][j-1] - 1.0
+                    )
+                    dp[i][j] = val
                     
-            if best_next_gene:
-                distances.append((min_dist, best_next_gene, genome.id))
+                    # Track the best local match
+                    if val > max_score:
+                        max_score = val
+                        # The next gene is exactly after the end of this historical match
+                        if i < n:
+                            best_next_gene = hist_genes[i]
+                        else:
+                            best_next_gene = None
+                            
+            if best_next_gene and max_score > 0:
+                distances.append((max_score, best_next_gene, genome.id))
                 
         if not distances:
             return []
             
-        # Sort by shortest structural distance (least mutations)
-        distances.sort(key=lambda x: x[0])
+        # Sort by highest local alignment score
+        distances.sort(key=lambda x: x[0], reverse=True)
         
         # Take the K closest mathematical neighbors
         nearest_neighbors = distances[:top_k]
@@ -69,15 +97,11 @@ class PredictionEngine:
         prediction_weights = {}
         total_weight = 0.0
         
-        for dist, next_gene_id, _ in nearest_neighbors:
-            # Distance-Weighted Voting:
-            # Perfect match (dist=0) gets weight 1.0
-            # 1 mutation (dist=1) gets lower weight, etc.
-            normalized_dist = dist / current_len
-            weight = max(0.0, 1.0 - normalized_dist)
-            
+        for score, next_gene, _ in nearest_neighbors:
+            # Score-Weighted Voting
+            weight = score
             if weight > 0:
-                prediction_weights[next_gene_id] = prediction_weights.get(next_gene_id, 0.0) + weight
+                prediction_weights[next_gene.technique_id] = prediction_weights.get(next_gene.technique_id, 0.0) + weight
                 total_weight += weight
                 
         if total_weight == 0:

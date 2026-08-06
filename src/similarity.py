@@ -1,42 +1,65 @@
 import numpy as np
-from typing import List
+import hashlib
+from collections import defaultdict
+from typing import List, Set
 from sklearn.cluster import DBSCAN
 from rich.console import Console
 from rich.progress import Progress
 
-from .models import Genome
+from .models import Genome, Gene
 
 console = Console()
 
-def levenshtein_distance(seq1: List[str], seq2: List[str]) -> int:
-    """Calculates the minimum edit distance between two Gene sequences (Needleman-Wunsch style sequence alignment)."""
+def sequence_alignment_distance(seq1: List, seq2: List, is_tactic: bool = False) -> float:
+    """Calculates weighted Needleman-Wunsch sequence alignment distance."""
     if len(seq1) < len(seq2):
-        return levenshtein_distance(seq2, seq1)
+        return sequence_alignment_distance(seq2, seq1, is_tactic)
 
     if len(seq2) == 0:
-        return len(seq1)
+        return float(len(seq1))
 
-    previous_row = list(range(len(seq2) + 1))
+    previous_row = [float(i) for i in range(len(seq2) + 1)]
     for i, c1 in enumerate(seq1):
-        current_row = [i + 1]
+        current_row = [float(i + 1)]
         for j, c2 in enumerate(seq2):
-            insertions = previous_row[j + 1] + 1 
-            deletions = current_row[j] + 1       
-            substitutions = previous_row[j] + (c1 != c2)
+            insertions = previous_row[j + 1] + 1.0
+            deletions = current_row[j] + 1.0
+            
+            if is_tactic:
+                cost = 0.0 if c1 == c2 else 1.0
+            else:
+                if c1.technique_id == c2.technique_id:
+                    cost = 0.0
+                elif c1.tactic == c2.tactic:
+                    cost = 0.5
+                else:
+                    cost = 1.0
+                    
+            substitutions = previous_row[j] + cost
             current_row.append(min(insertions, deletions, substitutions))
         previous_row = current_row
     
     return previous_row[-1]
 
+def get_minhash_signature(gene_set: Set[str], num_hashes: int = 20) -> List[int]:
+    """Generates a MinHash signature for LSH pre-filtering."""
+    signature = [float('inf')] * num_hashes
+    for gene in gene_set:
+        for i in range(num_hashes):
+            h = int(hashlib.md5(f"{gene}{i}".encode()).hexdigest(), 16)
+            if h < signature[i]:
+                signature[i] = h
+    return signature
+
 def calculate_similarity(genome1: Genome, genome2: Genome) -> float:
     """Returns a similarity score between 0.0 (completely different) and 1.0 (identical)."""
-    seq1 = genome1.to_sequence()
-    seq2 = genome2.to_sequence()
+    seq1 = genome1.genes
+    seq2 = genome2.genes
     
     max_len = max(len(seq1), len(seq2))
     if max_len == 0: return 1.0
     
-    dist = levenshtein_distance(seq1, seq2)
+    dist = sequence_alignment_distance(seq1, seq2, is_tactic=False)
     similarity = 1.0 - (dist / max_len)
     return max(0.0, similarity)
 
@@ -85,15 +108,35 @@ class SimilarityEngine:
         
         # Precompute sequences to avoid half a million function calls
         if metric_type == "levenshtein_genes":
-            seqs = [g.to_sequence() for g in genomes]
+            seqs = [g.genes for g in genomes]
         elif metric_type == "jaccard_genes":
             seqs = [g.to_gene_set() for g in genomes]
         elif metric_type == "levenshtein_tactics":
             seqs = [g.to_tactic_sequence() for g in genomes]
             
+        # LSH Pre-filtering
+        candidates = set()
+        if metric_type == "levenshtein_genes":
+            console.print("[dim]Applying MinHash LSH pre-filtering...[/dim]")
+            num_hashes = 20
+            bands = 5
+            rows = num_hashes // bands
+            buckets = defaultdict(list)
+            for i in range(n):
+                sig = get_minhash_signature({g.technique_id for g in genomes[i].genes}, num_hashes)
+                for b in range(bands):
+                    buckets[(b, tuple(sig[b*rows:(b+1)*rows]))].append(i)
+                    
+            for indices in buckets.values():
+                for i in range(len(indices)):
+                    for j in range(i+1, len(indices)):
+                        candidates.add((indices[i], indices[j]))
+        else:
+            candidates = set((i, j) for i in range(n) for j in range(i+1, n))
+            
         with Progress() as progress:
             display_name = {
-                "levenshtein_genes": "Sequence Alignment",
+                "levenshtein_genes": "Weighted Sequence Alignment",
                 "jaccard_genes": "Jaccard Motif Matching",
                 "levenshtein_tactics": "Taxonomic Zooming"
             }.get(metric_type, metric_type)
@@ -103,13 +146,18 @@ class SimilarityEngine:
             for i in range(n):
                 seq_i = seqs[i]
                 for j in range(i+1, n):
+                    if (i, j) not in candidates:
+                        # Skip expensive calculation, assume maximum distance
+                        dist_matrix[i][j] = dist_matrix[j][i] = 1.0
+                        continue
+                        
                     seq_j = seqs[j]
-                    
                     if metric_type == "jaccard_genes":
                         dist = jaccard_distance(seq_i, seq_j)
                     else:
                         max_len = max(len(seq_i), len(seq_j))
-                        dist = 0.0 if max_len == 0 else levenshtein_distance(seq_i, seq_j) / max_len
+                        is_tactic = (metric_type == "levenshtein_tactics")
+                        dist = 0.0 if max_len == 0 else sequence_alignment_distance(seq_i, seq_j, is_tactic) / max_len
                         
                     dist_matrix[i][j] = dist
                     dist_matrix[j][i] = dist

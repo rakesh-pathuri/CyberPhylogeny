@@ -15,6 +15,7 @@ class Genome(BaseModel):
     id: str # e.g., 'G0016' (APT29)
     name: str
     description: Optional[str] = None
+    created: datetime
     genes: List[Gene] = Field(default_factory=list)
     
     def to_sequence(self) -> List[str]:
