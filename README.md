@@ -165,15 +165,17 @@ python main.py diff S0347 S0527
 ```
 *Example Output:*
 ```text
-Execution
---------------
-Windows Command Shell
-v
-Scheduled Task
+Attack : S0527 (CSPY Downloader)
+Mutation Score : 7.5
 
- Windows Service
-->
-Malicious File
+Mutations
+
+[Execution]
+  [~] Windows Command Shell -> Scheduled Task
+  [~] Windows Service (from persistence) -> Malicious File
+
+[Privilege-Escalation]
+  [~] File and Directory Discovery (from discovery) -> Bypass User Account Control
 ```
 
 **5. Lineage Trace**

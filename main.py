@@ -205,10 +205,9 @@ def cmd_diff(ancestor_id: str, descendant_id: str):
         return
         
     for tactic, ops in grouped_mutations.items():
-        console.print(f"\n[bold magenta]{tactic.title()}[/bold magenta]")
-        console.print("--------------")
+        console.print(f"\n[bold magenta]\\[{tactic.title()}][/bold magenta]")
         for op in ops:
-            console.print(op + "\n")
+            console.print("  " + op)
 
 def cmd_lineage(attack_id: str):
     """Traces the evolutionary chain of a specific attack back to its root."""
