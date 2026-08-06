@@ -204,7 +204,7 @@ def cmd_genome(attack_id: str):
         dist_matrix = np.zeros((n, n))
         for i in range(n):
             for j in range(i+1, n):
-                d = sequence_alignment_distance(target_family[i].genes, target_family[j].genes, is_tactic=False)
+                d = sequence_alignment_distance(target_family[i].genes, target_family[j].genes, is_string_match=False)
                 dist_matrix[i][j] = dist_matrix[j][i] = d
                 
         root_idx = min(range(n), key=lambda idx: target_family[idx].created)
@@ -325,7 +325,7 @@ def cmd_ancestry(attack_id: str):
     dist_matrix = np.zeros((n, n))
     for i in range(n):
         for j in range(i+1, n):
-            d = sequence_alignment_distance(target_family[i].genes, target_family[j].genes, is_tactic=False)
+            d = sequence_alignment_distance(target_family[i].genes, target_family[j].genes, is_string_match=False)
             dist_matrix[i][j] = dist_matrix[j][i] = d
             
     root_idx = min(range(n), key=lambda idx: target_family[idx].created)

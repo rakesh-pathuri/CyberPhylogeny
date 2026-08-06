@@ -37,5 +37,9 @@ class Genome(BaseModel):
         return {f"{g.source_technique_id}->{g.target_technique_id}" for g in self.genes}
         
     def to_tactic_sequence(self) -> List[str]:
-        """Returns ordered list of Tactic transitions (Stage 3: Taxonomic Zooming)."""
+        """Returns ordered list of Tactic transitions."""
         return [f"{g.source_tactic}->{g.target_tactic}" for g in self.genes]
+        
+    def to_parent_technique_sequence(self) -> List[str]:
+        """Returns ordered list of Parent Technique transitions (Stage 3: Taxonomic Zooming)."""
+        return [f"{g.source_technique_id.split('.')[0]}->{g.target_technique_id.split('.')[0]}" for g in self.genes]

@@ -10,10 +10,10 @@ from .models import Genome, Gene
 
 console = Console()
 
-def sequence_alignment_distance(seq1: List, seq2: List, is_tactic: bool = False) -> float:
+def sequence_alignment_distance(seq1: List, seq2: List, is_string_match: bool = False) -> float:
     """Calculates weighted Needleman-Wunsch sequence alignment distance."""
     if len(seq1) < len(seq2):
-        return sequence_alignment_distance(seq2, seq1, is_tactic)
+        return sequence_alignment_distance(seq2, seq1, is_string_match)
 
     if len(seq2) == 0:
         return float(len(seq1))
@@ -25,7 +25,7 @@ def sequence_alignment_distance(seq1: List, seq2: List, is_tactic: bool = False)
             insertions = previous_row[j + 1] + 1.0
             deletions = current_row[j] + 1.0
             
-            if is_tactic:
+            if is_string_match:
                 cost = 0.0 if c1 == c2 else 1.0
             else:
                 if c1.source_technique_id == c2.source_technique_id and c1.target_technique_id == c2.target_technique_id:
@@ -59,7 +59,7 @@ def calculate_similarity(genome1: Genome, genome2: Genome) -> float:
     max_len = max(len(seq1), len(seq2))
     if max_len == 0: return 1.0
     
-    dist = sequence_alignment_distance(seq1, seq2, is_tactic=False)
+    dist = sequence_alignment_distance(seq1, seq2, is_string_match=False)
     similarity = 1.0 - (dist / max_len)
     return max(0.0, similarity)
 
@@ -92,9 +92,9 @@ class SimilarityEngine:
         # Extract orphans from Stage 2 (label -1)
         orphans_s2 = families_s2.get(-1, [])
         if orphans_s2:
-            console.print(f"\n[bold cyan]--- STAGE 3: Taxonomic Zooming (Tactic Alignment) ---[/bold cyan]")
+            console.print(f"\n[bold cyan]--- STAGE 3: Taxonomic Zooming (Parent Technique Alignment) ---[/bold cyan]")
             console.print(f"[dim]Analyzing {len(orphans_s2)} orphans from Stage 2...[/dim]")
-            families_s3, score_s3 = self._cluster_with_metric(orphans_s2, metric_type="alignment_tactics", eps=eps, min_samples=min_samples)
+            families_s3, score_s3 = self._cluster_with_metric(orphans_s2, metric_type="alignment_parents", eps=eps, min_samples=min_samples)
         else:
             families_s3 = {-1: []}
             score_s3 = 0.0
@@ -113,8 +113,8 @@ class SimilarityEngine:
             seqs = [g.genes for g in genomes]
         elif metric_type == "jaccard_genes":
             seqs = [g.to_gene_set() for g in genomes]
-        elif metric_type == "alignment_tactics":
-            seqs = [g.to_tactic_sequence() for g in genomes]
+        elif metric_type == "alignment_parents":
+            seqs = [g.to_parent_technique_sequence() for g in genomes]
             
         # LSH Pre-filtering
         candidates = set()
@@ -142,7 +142,7 @@ class SimilarityEngine:
             display_name = {
                 "alignment_genes": "Weighted Sequence Alignment",
                 "jaccard_genes": "Jaccard Motif Matching",
-                "alignment_tactics": "Taxonomic Zooming"
+                "alignment_parents": "Taxonomic Zooming (Parent Techniques)"
             }.get(metric_type, metric_type)
             
             task = progress.add_task(f"[cyan]Calculating distances ({display_name})...", total=n)
@@ -160,8 +160,8 @@ class SimilarityEngine:
                         dist = jaccard_distance(seq_i, seq_j)
                     else:
                         max_len = max(len(seq_i), len(seq_j))
-                        is_tactic = (metric_type == "alignment_tactics")
-                        dist = 0.0 if max_len == 0 else sequence_alignment_distance(seq_i, seq_j, is_tactic) / max_len
+                        is_string_match = (metric_type == "alignment_parents")
+                        dist = 0.0 if max_len == 0 else sequence_alignment_distance(seq_i, seq_j, is_string_match) / max_len
                         
                     dist_matrix[i][j] = dist
                     dist_matrix[j][i] = dist
