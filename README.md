@@ -68,9 +68,10 @@ graph TD
     A[Raw STIX Data] -->|Parser| B(Genome Knowledge Base)
     
     %% Clustering Pipeline
-    B -->|Sequence Alignment| C[Primary Families]
-    C -->|Unordered Jaccard| D[Motif Families]
-    D -->|Taxonomic Zooming| E[Strategic Families]
+    B -->|Stage 1: Sequence Alignment| C[Primary Families]
+    C -->|Stage 2: Unordered Jaccard| D[Motif Families]
+    D -->|Stage 3: Taxonomic Zooming| E[Strategic Families]
+    E -->|Stage 4: Taxonomic Motif Matching| K[Taxonomic Motif Families]
     
     %% Evolution Pipeline (Centerpiece)
     C -->|Minimum Spanning Tree| I(Phylogenetic Tree)
@@ -86,7 +87,17 @@ graph TD
     style I fill:#ff006e,stroke:#333,stroke-width:2px,color:#fff
     style J fill:#fb5607,stroke:#333,stroke-width:2px,color:#fff
     style H fill:#06d6a0,stroke:#333,stroke-width:2px,color:#black
+    style K fill:#ffbe0b,stroke:#333,stroke-width:2px,color:#black
 ```
+
+### The 4-Stage Clustering Pipeline
+To successfully cluster polymorphic attacks, CyberPhylogeny uses a cascading waterfall algorithm:
+1. **Stage 1 (Sequence Alignment):** Highly strict `Needleman-Wunsch` alignment on exact Gene order.
+2. **Stage 2 (Jaccard Motif):** Relaxes constraints to look for unordered motifs (Jaccard similarity) on remaining orphans.
+3. **Stage 3 (Taxonomic Zooming):** Zooms out to align `Parent Techniques` instead of exact Sub-Technique implementations.
+4. **Stage 4 (Taxonomic Motif Matching):** The final safety net; looks for unordered Jaccard Motif matches on `Parent Techniques`. 
+
+By cascading these stages, the pipeline achieves an **80% reduction in noise (orphans)** across 955 MITRE ATT&CK profiles!
 
 ## Evaluation Metrics
 
@@ -154,12 +165,10 @@ Defense-Impairment
 ├── Modify Registry
 └── Code Signing
 
-Genome Size : 12 Genes
-Applying MinHash LSH pre-filtering...
-Calculating distances (Weighted Sequence Alignment)... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
-Mutation Index : 7.5
-Family : 24
-Generation : 3
+Genome Size : 25 Genes
+Mutation Index : 16.5
+Family : 79 (Stage 4)
+Generation : 17
 ```
 
 **2. Multi-Stage Clustering** 
@@ -197,10 +206,10 @@ Family 0 - 2 attacks
 
 Clustering Summary
 Attacks analyzed : 955
-Families found   : 45 (Across all stages)
-Largest family   : 720
+Families found   : 99 (Across all stages)
+Largest family   : 514
 Median family size: 2
-Final Noise      : 133
+Final Noise      : 172
 Stage 1 Silhouette: 0.50
 ```
 
@@ -209,21 +218,19 @@ Prints a clean mathematical dendrogram showing relationships and branch heights.
 - `mst` (Maximum Parsimony): Infers the most parsimonious ancestry between known attacks.
 - `upgma` (Unweighted Pair Group Method with Arithmetic Mean): Generates a true hierarchical dendrogram with hypothetical common ancestors.
 ```bash
-python main.py tree 24 --algo upgma
+python main.py tree 80 --algo upgma
 ```
 *Example Output:*
 ```text
-Loading cached ATT&CK Genome Repository...
-Applying MinHash LSH pre-filtering...
-Calculating distances (Weighted Sequence Alignment)... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
-
-Phylogenetic Tree for Family 24 (3 variants)
+Phylogenetic Tree for Family 80 (Stage 4) (4 variants)
 Algorithm: UPGMA
-UPGMA Dendrogram (Root Height: 3.88)
-├── ------------------- S0527 (CSPY Downloader) (branch: 3.88)
-└── - Common Ancestor (height: 3.50, branch: 0.38)
-    ├── ----------------- S0347 (AuditCred) (branch: 3.50)
-    └── ----------------- S0263 (TYPEFRAME) (branch: 3.50)
+UPGMA Dendrogram (Root Height: 6.67)
+├── --------------------------------- G1011 (EXOTIC LILY) (branch: 6.67)
+└── ------------ Common Ancestor (height: 4.25, branch: 2.42)
+    ├── --------------------- G0138 (Andariel) (branch: 4.25)
+    └── ----------- Common Ancestor (height: 2.00, branch: 2.25)
+        ├── ---------- G0089 (The White Company) (branch: 2.00)
+        └── ---------- G0005 (APT12) (branch: 2.00)
 ```
 
 **4. Mutation Diff (Forensic Report)**
@@ -236,35 +243,45 @@ python main.py diff S0347 S0527
 Loading cached ATT&CK Genome Repository...
 
 Attack : S0527 (CSPY Downloader)
-Mutation Distance : 7.5
+Mutation Distance : 8.5
 
 Mutations
 
-[Execution]
-  [~] Windows Command Shell -> Scheduled Task
-+ [+] Malicious File (New Tactic Shift from persistence)
+[Execution->Execution]
+  [+] Scheduled Task->Malicious File (New Tactic Shift from execution->persistence)
 
-[Persistence]
-- [-] Windows Service (Dropped Tactic Shift)
+[Execution->Persistence]
+  [-] Windows Command Shell->Windows Service (Dropped Tactic Shift)
 
-[Privilege-Escalation]
-+ [+] Bypass User Account Control (New Tactic Shift from discovery)
+[Execution->Privilege-Escalation]
+  [+] Malicious File->Bypass User Account Control (New Tactic Shift from persistence->discovery)
 
-[Discovery]
-- [-] File and Directory Discovery (Dropped Tactic Shift)
+[Persistence->Discovery]
+  [-] Windows Service->File and Directory Discovery (Dropped Tactic Shift)
 
-[Command-And-Control]
-  [~] Proxy -> Web Protocols
+[Privilege-Escalation->Command-And-Control]
+  [+] Bypass User Account Control->Web Protocols (New Tactic Shift from discovery->command-and-control)
 
-[Stealth]
-  [~] Encrypted/Encoded File -> Software Packing
-  [~] Process Injection -> Masquerade Task or Service
-+ [+] Indicator Removal (New Gene)
-  [~] Deobfuscate/Decode Files or Information -> System Checks
+[Discovery->Command-And-Control]
+  [-] File and Directory Discovery->Proxy (Dropped Tactic Shift)
 
-[Defense-Impairment]
-+ [+] Modify Registry (New Gene)
-+ [+] Code Signing (New Gene)
+[Command-And-Control->Command-And-Control]
+  [~] (Proxy->Ingress Tool Transfer) to (Web Protocols->Ingress Tool Transfer)
+
+[Command-And-Control->Stealth]
+  [~] (Ingress Tool Transfer->Encrypted/Encoded File) to (Ingress Tool Transfer->Software Packing)
+
+[Stealth->Stealth]
+  [~] (Encrypted/Encoded File->Process Injection) to (Software Packing->Masquerade Task or Service)
+  [~] (Process Injection->File Deletion) to (Masquerade Task or Service->Indicator Removal)
+  [~] (File Deletion->Deobfuscate/Decode Files or Information) to (Indicator Removal->File Deletion)
+
+[Stealth->Defense-Impairment]
+  [+] File Deletion->Modify Registry (New Transition)
+  [+] System Checks->Code Signing (New Transition)
+
+[Defense-Impairment->Stealth]
+  [+] Modify Registry->System Checks (New Transition)
 ```
 
 **5. Ancestry Trace**
@@ -274,16 +291,45 @@ python main.py ancestry S0527
 ```
 *Example Output:*
 ```text
-Loading cached ATT&CK Genome Repository...
-Applying MinHash LSH pre-filtering...
-Calculating distances (Weighted Sequence Alignment)... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
-
 Ancestry for S0527
-S0263 (TYPEFRAME)
-  | (distance = 7.00)
+G0004 (Ke3chang)
+  | (distance = 28.50)
   v
-S0347 (AuditCred)
-  | (distance = 7.50)
+G0022 (APT3)
+  | (distance = 27.50)
+  v
+G0093 (GALLIUM)
+  | (distance = 18.00)
+  v
+G1023 (APT5)
+  | (distance = 19.50)
+  v
+S1122 (Mispadu)
+  | (distance = 14.50)
+  v
+S0330 (Zeus Panda)
+  | (distance = 13.50)
+  v
+S0348 (Cardinal RAT)
+  | (distance = 11.00)
+  v
+S0021 (Derusbi)
+  | (distance = 11.00)
+  v
+S0248 (yty)
+  | (distance = 8.50)
+  v
+S0161 (XAgentOSX)
+  | (distance = 5.50)
+  v
+S0088 (Kasidet)
+  | (distance = 5.00)
+  v
+S0142 (StreamEx)
+  | (distance = 5.50)
+  v
+S0679 (Ferocious)
+  | (distance = 8.00)
   v
 S0527 (CSPY Downloader)
 
@@ -300,8 +346,13 @@ python main.py predict "T1583.001,T1588.002,T1189"
 Ongoing Attack Sequence (Transitions): ['T1583.001->T1588.002', 'T1588.002->T1189']
 
 Most Probable Next Behaviors:
-Predicted Transition      Implementation Transition                   Tactical Flow                                             Probability   Confidence Score
-T1189->T1566.001          Drive-by Compromise -> Spearphishing Attach initial-access->initial-access                            100.0%    1.00x
++--------------------------------------------------------------------------------------------------------------------------+
+| Predicted Transition | Implementation Transition                                | Tactical Flow          | Prob.  | Conf.|
+|----------------------+----------------------------------------------------------+------------------------+--------+------|
+| T1189->T1566.001     | Drive-by Compromise -> Spearphishing Attachment          | initial-access         | 71.4%  | 10.0x|
+| T1190->T1199         | Exploit Public-Facing Application -> Trusted Relat...    | initial-access         | 28.6%  |  4.0x|
++--------------------------------------------------------------------------------------------------------------------------+
+* Confidence Score represents the mathematical similarity of the historical sequence matched (1.0 = perfect suffix alignment).
 ```
 
 ## Limitations & Future Work
