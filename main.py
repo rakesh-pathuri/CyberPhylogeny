@@ -122,36 +122,87 @@ def cmd_genome(attack_id: str):
     data = fetch_mitre_data()
     _, genomes = parse_mitre_to_genomes(data)
     
-    # Allow case-insensitive search
     target = next((g for g in genomes if g.id.lower() == attack_id.lower()), None)
     if not target:
         console.print(f"[red]Attack ID '{attack_id}' not found in the Threat Database.[/red]")
         return
         
-    console.print(f"\n[bold cyan]Genome Profile: {target.name} ({target.id})[/bold cyan]")
-    if target.description:
-        desc = target.description.split("\n")[0] # Just the first line/sentence
-        desc = desc[:200] + "..." if len(desc) > 200 else desc
-        console.print(f"[dim]{desc}[/dim]\n")
-        
-    console.print(f"[bold]Genetic Sequence ({len(target.genes)} Genes)[/bold]")
-    table = Table(show_header=True, header_style="bold magenta")
-    table.add_column("Index", style="dim", width=5)
-    table.add_column("Technique ID", style="dim", width=15)
-    table.add_column("Implementation")
-    table.add_column("Behavior")
-    table.add_column("Tactic", style="italic")
+    console.print(f"\n[bold cyan]Attack Genome : {target.name} ({target.id})[/bold cyan]\n")
     
-    for i, gene in enumerate(target.genes, 1):
-        table.add_row(
-            str(i),
-            gene.technique_id,
-            gene.implementation,
-            gene.behavior,
-            gene.tactic
-        )
+    from rich.tree import Tree
+    
+    # Group genes by tactic
+    tactics = {}
+    for gene in target.genes:
+        tactics.setdefault(gene.tactic, []).append(gene)
         
-    console.print(table)
+    for i, (tactic, genes) in enumerate(tactics.items()):
+        tactic_node = Tree(f"[bold magenta]{tactic.title()}[/bold magenta]")
+        for gene in genes:
+            tactic_node.add(f"[cyan]{gene.implementation}[/cyan]")
+        console.print(tactic_node)
+        if i < len(tactics) - 1:
+            console.print()
+            
+    console.print(f"\n[bold]Genome Size[/bold] : {len(target.genes)} Genes")
+    
+    # Calculate family and generation
+    sim_engine = SimilarityEngine(genomes)
+    families = sim_engine._cluster_with_metric(genomes, metric_type="levenshtein_genes", eps=0.6, min_samples=2)
+    
+    target_family = None
+    family_id = None
+    for label, family in families.items():
+        if target in family:
+            target_family = family
+            family_id = label
+            break
+            
+    if target_family:
+        n = len(target_family)
+        import numpy as np
+        from src.similarity import sequence_alignment_distance
+        dist_matrix = np.zeros((n, n))
+        for i in range(n):
+            for j in range(i+1, n):
+                d = sequence_alignment_distance(target_family[i].genes, target_family[j].genes, is_tactic=False)
+                dist_matrix[i][j] = dist_matrix[j][i] = d
+                
+        root_idx = min(range(n), key=lambda idx: target_family[idx].created)
+        target_idx = target_family.index(target)
+        
+        visited = {root_idx}
+        parents = {root_idx: None}
+        
+        while len(visited) < n:
+            min_dist = float('inf')
+            best_edge = None
+            for u in visited:
+                for v in range(n):
+                    if v not in visited and dist_matrix[u][v] < min_dist:
+                        min_dist = dist_matrix[u][v]
+                        best_edge = (u, v)
+            if best_edge:
+                u, v = best_edge
+                visited.add(v)
+                parents[v] = u
+                
+        # Find path to calculate generation and parent distance
+        path = []
+        curr = target_idx
+        while curr is not None:
+            path.append(target_family[curr])
+            curr = parents.get(curr)
+            
+        generation = len(path)
+        
+        if generation > 1:
+            parent_idx = target_family.index(path[1]) # path is reversed, so path[1] is parent
+            mutation_index = dist_matrix[parent_idx][target_idx]
+            console.print(f"[bold]Mutation Index[/bold] : {mutation_index:.1f}")
+            
+        console.print(f"[bold]Family[/bold] : {family_id}")
+        console.print(f"[bold]Generation[/bold] : {generation}")
 
 def cmd_tree(eps: float, min_samples: int, target_family: int, algo: str):
     """Generates a Phylogenetic Tree for a family."""

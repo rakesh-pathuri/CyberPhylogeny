@@ -119,19 +119,18 @@ python main.py genome S0697
 ```
 *Example Output:*
 ```text
-Genome Profile: HermeticWiper (S0697)
-[HermeticWiper](https://attack.mitre.org/software/S0697) is a data wiper that 
-has been used since at least early 2022, primarily against Ukraine...
+Attack Genome : HermeticWiper (S0697)
 
-Genetic Sequence (26 Genes)
-+-------------------------------------------------------------------------------------------------+
-| Index | Technique ID | Implementation        | Behavior              | Tactic                   |
-|-------+--------------+-----------------------+-----------------------+--------------------------|
-| 1     | T1053.005    | Scheduled Task        | Scheduled Task/Job    | execution                |
-| 2     | T1059.003    | Windows Command Shell | Command and Scripting | execution                |
-| 3     | T1106        | Native API            | Native API            | execution                |
-| ...   | ...          | ...                   | ...                   | ...                      |
-+-------------------------------------------------------------------------------------------------+
+Execution
+ ├── Scheduled Task
+ ├── Windows Command Shell
+ ├── Native API
+ ...
+
+Genome Size : 26 Genes
+Mutation Index : 2.5
+Family : 18
+Generation : 2
 ```
 
 **2. Multi-Stage Clustering** 
