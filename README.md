@@ -40,7 +40,8 @@ CyberPhylogeny maps standard cybersecurity ideas into a 4-tier biological ontolo
 This research framework relies on formal definitions to model attacks:
 
 * **Genome ($G$)**: An ordered sequence of genes. $G = [g_1, g_2, g_3, \dots, g_n]$
-* **Distance ($D(G_1, G_2)$)**: The mathematical distance between two genomes using Sequence Alignment (Needleman-Wunsch).
+* **Distance ($D(G_1, G_2)$)**: The mathematical distance between two genomes using a **Weighted Sequence Alignment** algorithm with hierarchical taxonomic penalties.
+* **Local Alignment (Prediction)**: Using the **Smith-Waterman** algorithm to mathematically discover optimal local subsequence matches to predict subsequent evolutionary steps.
 * **Mutation ($\Delta(G_1, G_2)$)**: The specific genetic changes (Insertions, Deletions, Substitutions) that turn $G_1$ into $G_2$.
 * **Family ($F$)**: A density-based cluster of genomes where the distance $D$ is less than a threshold $\epsilon$. $F = Cluster(G)$
 
@@ -50,7 +51,9 @@ Standard Threat Intelligence tools use MITRE ATT&CK to describe what an attacker
 
 1. **From Similarity to Ancestry:** Traditional systems compare two lists of techniques and give a simple score (e.g., "85% match"). CyberPhylogeny uses Minimum Spanning Trees (MST) to show *why* they are similar: *"Attack B evolved from Attack A, and here is the exact branch where it mutated."*
 2. **Biological Abstraction:** Comparing raw MITRE IDs (like `T1059.001` vs `T1059.006`) treats them as completely different strings. By using the 4-part Gene hierarchy, CyberPhylogeny mathematically understands that changing PowerShell to Python is *not* a new attack—it is just a **mutation** of the same underlying "Execution" gene.
-3. **Predictive Alignment vs. Reactive Detection:** CTI tools are reactive (they look at the past). CyberPhylogeny uses Sequence Alignment algorithms to probabilistically estimate the most probable next behavioral gene, based on the evolutionary history of the attack family.
+3. **Chronological Evolution vs. Heuristics:** The system parses exact ISO8601 timestamps from threat intelligence reports to root Minimum Spanning Trees temporally, abandoning mathematically unsound proxies like "sequence length".
+4. **Predictive Alignment vs. Reactive Detection:** CTI tools are reactive (they look at the past). CyberPhylogeny utilizes the **Smith-Waterman** local alignment algorithm to robustly handle insertions/deletions mid-attack, and probabilistically estimates the attacker's next move.
+5. **Algorithmic Scalability:** Features a custom **MinHash LSH (Locality-Sensitive Hashing)** pass to pre-filter and bucket genomes in $O(N)$ time before running the computationally expensive $O(K^2)$ sequence alignment matrices.
 
 ## Project Architecture (Multi-Stage Pipeline)
 
@@ -68,9 +71,9 @@ graph TD
     I -->|Mutation Score Tracker| J(Evolution Analysis)
     
     %% Prediction Pipeline
-    F[Ongoing Attack Sequence] -->|Suffix Sequence Matching| G(KNN Prediction Engine)
+    F[Ongoing Attack Sequence] -->|Smith-Waterman Alignment| G(KNN Prediction Engine)
     B -->|Raw Historical Sequences| G
-    G -->|Distance-Weighted Voting| H[Probabilistic Next Steps]
+    G -->|Score-Weighted Voting| H[Probabilistic Next Steps]
     
     style B fill:#8338ec,stroke:#333,stroke-width:2px,color:#fff
     style C fill:#3a86ff,stroke:#333,stroke-width:2px,color:#fff
@@ -84,7 +87,7 @@ graph TD
 To validate the framework's efficacy against traditional CTI, CyberPhylogeny utilizes the following evaluation framework:
 * **Similarity Accuracy**: Benchmarking Sequence Alignment vs raw Jaccard similarity.
 * **Family Reconstruction Accuracy**: Validating cluster purity against known threat actor group overlap (e.g., separating distinct APT29 campaigns).
-* **Prediction Accuracy**: Cross-validating the suffix sequence matcher's ability to estimate the next gene in historical data.
+* **Prediction Accuracy**: Cross-validating the Smith-Waterman matcher's ability to estimate the next gene in historical data despite active insertions/deletions.
 * **Mutation Detection Accuracy**: Tracking how accurately substitutions identify polymorphic malware variants.
 * **Phylogenetic Consistency**: Validating the MST branch structure against temporal cyber threat intelligence reports.
 
@@ -164,6 +167,12 @@ Evolutionary Tree
 Estimates the attacker's most probable next behavioral gene.
 ```bash
 python main.py predict T1566.001,T1059.001
+```
+
+**5. Visual Dashboard** 
+Generates an interactive Web Application and serves it locally to visualize the generated Phylogenetic Trees.
+```bash
+python main.py dashboard
 ```
 
 ---
