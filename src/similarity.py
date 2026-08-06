@@ -74,7 +74,7 @@ class SimilarityEngine:
     def __init__(self, genomes: List[Genome]):
         self.genomes = genomes
         
-    def run_multi_stage_pipeline(self, eps: float = 0.45, min_samples: int = 2):
+    def run_multi_stage_pipeline(self, eps: float = 0.45, min_samples: int = 2, eps_s3: float = 0.65):
         """Runs the 3-stage classification pipeline to classify genomes and mathematically handle orphans."""
         console.print(f"\n[bold green]--- STAGE 1: Sequence Alignment (Needleman-Wunsch) ---[/bold green]")
         families_s1, score_s1 = self._cluster_with_metric(self.genomes, metric_type="alignment_genes", eps=eps, min_samples=min_samples)
@@ -93,8 +93,8 @@ class SimilarityEngine:
         orphans_s2 = families_s2.get(-1, [])
         if orphans_s2:
             console.print(f"\n[bold cyan]--- STAGE 3: Taxonomic Zooming (Parent Technique Alignment) ---[/bold cyan]")
-            console.print(f"[dim]Analyzing {len(orphans_s2)} orphans from Stage 2...[/dim]")
-            families_s3, score_s3 = self._cluster_with_metric(orphans_s2, metric_type="alignment_parents", eps=eps, min_samples=min_samples)
+            console.print(f"[dim]Analyzing {len(orphans_s2)} orphans from Stage 2 with eps={eps_s3}...[/dim]")
+            families_s3, score_s3 = self._cluster_with_metric(orphans_s2, metric_type="alignment_parents", eps=eps_s3, min_samples=min_samples)
         else:
             families_s3 = {-1: []}
             score_s3 = 0.0

@@ -39,11 +39,11 @@ def cmd_clean():
         console.print("[dim]Cache does not exist. Nothing to clean.[/dim]")
 
 
-def cmd_cluster(eps: float, min_samples: int):
+def cmd_cluster(eps: float, min_samples: int, eps_s3: float = 0.65):
     genomes = get_cached_genomes()
     
     sim_engine = SimilarityEngine(genomes)
-    f1, f2, f3, score_s1 = sim_engine.run_multi_stage_pipeline(eps, min_samples)
+    f1, f2, f3, score_s1 = sim_engine.run_multi_stage_pipeline(eps, min_samples, eps_s3)
     
     def print_families(families, stage_name):
         console.print(f"\n[bold]{stage_name} Families[/bold]")
@@ -388,9 +388,10 @@ if __name__ == "__main__":
     parser_genome.add_argument("attack_id", type=str, help="Attack ID (e.g., 'S0039')")
     
     # 3. Cluster
-    parser_cluster = subparsers.add_parser("cluster", help="Cluster attacks into Evolutionary Families")
-    parser_cluster.add_argument("--eps", type=float, default=0.45, help="DBSCAN epsilon distance (0.0 to 1.0)")
-    parser_cluster.add_argument("--min_samples", type=int, default=2, help="Minimum attacks to form a family")
+    parser_cluster = subparsers.add_parser("cluster", help="Run multi-stage phylogenetic clustering")
+    parser_cluster.add_argument("--eps", type=float, default=0.45, help="DBSCAN epsilon threshold for Stages 1 & 2 (default: 0.45)")
+    parser_cluster.add_argument("--eps3", type=float, default=0.65, help="DBSCAN epsilon threshold for Stage 3 Taxonomic Zooming (default: 0.65)")
+    parser_cluster.add_argument("--min_samples", type=int, default=2, help="DBSCAN min_samples threshold (default: 2)")
     
     # 4. Tree
     parser_tree = subparsers.add_parser("tree", help="Build a Phylogenetic Tree for a specific family")
@@ -420,10 +421,10 @@ if __name__ == "__main__":
     
     if args.command == "ingest":
         cmd_ingest()
+    elif args.command == "cluster":
+        cmd_cluster(args.eps, args.min_samples, args.eps3)
     elif args.command == "genome":
         cmd_genome(args.attack_id)
-    elif args.command == "cluster":
-        cmd_cluster(args.eps, args.min_samples)
     elif args.command == "tree":
         cmd_tree(args.eps, args.min_samples, int(args.family), args.algo)
     elif args.command == "predict":
