@@ -148,7 +148,7 @@ def cmd_genome(attack_id: str):
     
     # Calculate family and generation
     sim_engine = SimilarityEngine(genomes)
-    families = sim_engine._cluster_with_metric(genomes, metric_type="levenshtein_genes", eps=0.6, min_samples=2)
+    families = sim_engine._cluster_with_metric(genomes, metric_type="alignment_genes", eps=0.6, min_samples=2)
     
     target_family = None
     family_id = None
@@ -210,7 +210,7 @@ def cmd_tree(eps: float, min_samples: int, target_family: int, algo: str):
     _, genomes = parse_mitre_to_genomes(data)
     
     sim_engine = SimilarityEngine(genomes)
-    families = sim_engine._cluster_with_metric(genomes, metric_type="levenshtein_genes", eps=eps, min_samples=min_samples)
+    families = sim_engine._cluster_with_metric(genomes, metric_type="alignment_genes", eps=eps, min_samples=min_samples)
     
     if target_family not in families:
         console.print(f"[red]Family {target_family} not found in Stage 1.[/red]")
@@ -271,7 +271,7 @@ def cmd_ancestry(attack_id: str):
         return
         
     sim_engine = SimilarityEngine(genomes)
-    families = sim_engine._cluster_with_metric(genomes, metric_type="levenshtein_genes", eps=0.6, min_samples=2)
+    families = sim_engine._cluster_with_metric(genomes, metric_type="alignment_genes", eps=0.6, min_samples=2)
     
     target_family = None
     for label, family in families.items():

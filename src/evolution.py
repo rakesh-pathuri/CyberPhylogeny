@@ -43,7 +43,7 @@ class EvolutionEngine:
         seq1 = ancestor.genes
         seq2 = descendant.genes
         
-        # Build Levenshtein matrix
+        # Build Alignment matrix
         n, m = len(seq1), len(seq2)
         dp = np.zeros((n + 1, m + 1), dtype=float)
         for i in range(n + 1): dp[i][0] = float(i)

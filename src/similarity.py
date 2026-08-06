@@ -77,7 +77,7 @@ class SimilarityEngine:
     def run_multi_stage_pipeline(self, eps: float = 0.6, min_samples: int = 2):
         """Runs the 3-stage classification pipeline to classify genomes and mathematically handle orphans."""
         console.print(f"\n[bold green]--- STAGE 1: Sequence Alignment (Needleman-Wunsch) ---[/bold green]")
-        families_s1 = self._cluster_with_metric(self.genomes, metric_type="levenshtein_genes", eps=eps, min_samples=min_samples)
+        families_s1 = self._cluster_with_metric(self.genomes, metric_type="alignment_genes", eps=eps, min_samples=min_samples)
         
         # Extract orphans from Stage 1 (label -1)
         orphans_s1 = families_s1.get(-1, [])
@@ -93,7 +93,7 @@ class SimilarityEngine:
         if orphans_s2:
             console.print(f"\n[bold cyan]--- STAGE 3: Taxonomic Zooming (Tactic Alignment) ---[/bold cyan]")
             console.print(f"[dim]Analyzing {len(orphans_s2)} orphans from Stage 2...[/dim]")
-            families_s3 = self._cluster_with_metric(orphans_s2, metric_type="levenshtein_tactics", eps=eps, min_samples=min_samples)
+            families_s3 = self._cluster_with_metric(orphans_s2, metric_type="alignment_tactics", eps=eps, min_samples=min_samples)
         else:
             families_s3 = {-1: []}
             
@@ -107,16 +107,16 @@ class SimilarityEngine:
         dist_matrix = np.zeros((n, n))
         
         # Precompute sequences to avoid half a million function calls
-        if metric_type == "levenshtein_genes":
+        if metric_type == "alignment_genes":
             seqs = [g.genes for g in genomes]
         elif metric_type == "jaccard_genes":
             seqs = [g.to_gene_set() for g in genomes]
-        elif metric_type == "levenshtein_tactics":
+        elif metric_type == "alignment_tactics":
             seqs = [g.to_tactic_sequence() for g in genomes]
             
         # LSH Pre-filtering
         candidates = set()
-        if metric_type == "levenshtein_genes":
+        if metric_type == "alignment_genes":
             console.print("[dim]Applying MinHash LSH pre-filtering...[/dim]")
             num_hashes = 20
             bands = 10
@@ -137,9 +137,9 @@ class SimilarityEngine:
             
         with Progress() as progress:
             display_name = {
-                "levenshtein_genes": "Weighted Sequence Alignment",
+                "alignment_genes": "Weighted Sequence Alignment",
                 "jaccard_genes": "Jaccard Motif Matching",
-                "levenshtein_tactics": "Taxonomic Zooming"
+                "alignment_tactics": "Taxonomic Zooming"
             }.get(metric_type, metric_type)
             
             task = progress.add_task(f"[cyan]Calculating distances ({display_name})...", total=n)
@@ -157,7 +157,7 @@ class SimilarityEngine:
                         dist = jaccard_distance(seq_i, seq_j)
                     else:
                         max_len = max(len(seq_i), len(seq_j))
-                        is_tactic = (metric_type == "levenshtein_tactics")
+                        is_tactic = (metric_type == "alignment_tactics")
                         dist = 0.0 if max_len == 0 else sequence_alignment_distance(seq_i, seq_j, is_tactic) / max_len
                         
                     dist_matrix[i][j] = dist
