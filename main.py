@@ -333,17 +333,20 @@ def cmd_ancestry(attack_id: str):
         console.print(f"[red]Attack ID '{attack_id}' not found.[/red]")
         return
         
-    sim_engine = SimilarityEngine(genomes)
-    families, _ = sim_engine._cluster_with_metric(genomes, metric_type="alignment_genes", eps=0.45, min_samples=2)
+    family_id = target.family_id
     
-    target_family = None
-    for label, family in families.items():
-        if target in family:
-            target_family = family
-            break
-            
-    if not target_family:
+    if not family_id:
+        console.print(f"\n[yellow]Clustering cache not found. Please run 'python main.py cluster' first.[/yellow]")
+        return
+        
+    if str(family_id) == "-1":
         console.print(f"[red]Attack ID '{attack_id}' is an orphan (not in any evolutionary family).[/red]")
+        return
+        
+    target_family = [g for g in genomes if str(g.family_id) == str(family_id)]
+    
+    if not target_family:
+        console.print(f"[red]Attack ID '{attack_id}' family '{family_id}' not found in cache.[/red]")
         return
         
     n = len(target_family)
