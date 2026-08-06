@@ -30,6 +30,14 @@ def get_cached_genomes():
 def cmd_ingest():
     console.print("[yellow]The 'ingest' command is deprecated. The system now automatically caches genomes on first run.[/yellow]")
 
+def cmd_clean():
+    """Deletes the local SQLite cache."""
+    if os.path.exists("genomes.db"):
+        os.remove("genomes.db")
+        console.print("[green]Successfully deleted local cache (genomes.db).[/green]")
+    else:
+        console.print("[dim]Cache does not exist. Nothing to clean.[/dim]")
+
 
 def cmd_cluster(eps: float, min_samples: int):
     genomes = get_cached_genomes()
@@ -403,7 +411,10 @@ if __name__ == "__main__":
     
     # 7. Ancestry
     parser_ancestry = subparsers.add_parser("ancestry", help="Trace the evolutionary ancestry of a specific attack")
-    parser_ancestry.add_argument("attack_id", type=str, help="Target Attack ID (e.g., 'S0527')")
+    parser_ancestry.add_argument("attack_id", help="The attack ID to trace (e.g. 'S0697')")
+    
+    # clean command
+    parser_clean = subparsers.add_parser("clean", help="Resets the local database cache")
 
     args = parser.parse_args()
     
@@ -421,7 +432,8 @@ if __name__ == "__main__":
         cmd_diff(args.ancestor, args.descendant)
     elif args.command == "ancestry":
         cmd_ancestry(args.attack_id)
-
+    elif args.command == "clean":
+        cmd_clean()
     else:
         parser.print_help()
         sys.exit(1)
