@@ -58,7 +58,7 @@ Why model attacks as evolving genomes instead of simply comparing ATT&CK sequenc
 To clarify what a "Genome" represents in this framework, we define the following scope:
 - **Attack Scope**: We model linear *execution traces* of malware, tools, or specific APT campaigns.
 - **Unified Genomic Space**: We cluster APT groups, malware, and open-source tools together into a single taxonomic tree. Modern APT campaigns frequently subsume and evolve from commodity malware and open-source tools; tracing this evolutionary lineage requires a unified biological ontology.
-- **The Genome**: Represents a temporal, ordered sequence of behaviors observed during a specific attack execution. It does not model a threat actor's entire arsenal or highly branching concurrent attacks.
+- **The Genome (Behavioral Transitions)**: Rather than treating the genome as a flat sequence of isolated techniques (which leads to massive overlap on common commodity tools like PowerShell), the genome is modeled as an ordered sequence of **Tactical Transitions** (Bigrams) (e.g., `PowerShell -> Scheduled Task`). This forces the alignment engine to evaluate the *flow* of an attack rather than just its constituent parts, perfectly encapsulating biological evolution.
 - **Data Source**: We utilize MITRE ATT&CK STIX data, mapping techniques as the foundational genomic alphabet.
 
 ## Project Architecture (Multi-Stage Pipeline)
@@ -175,35 +175,33 @@ Loading cached ATT&CK Genome Repository...
 Applying MinHash LSH pre-filtering...
 Calculating distances (Weighted Sequence Alignment)... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
 
-Genome Distance Statistics (997 genomes)
+Genome Distance Statistics (955 genomes)
 Min    : 0.00
-Mean   : 0.96
+Mean   : 0.95
 Median : 1.00
 95%    : 1.00
 Max    : 1.00
 
 STAGE 1: Evolutionary Ancestry (Weighted Sequence Alignment) Families
 
-Family 0 - 166 attacks
+Family 0 - 2 attacks
 +------------------------------------------------------+
 | Attack /     |                       |               |
 | Group ID     | Name                  | Genome Length |
 |--------------+-----------------------+---------------|
-| S0527        | CSPY Downloader       | 12            |
-| S0347        | AuditCred             | 9             |
-| S0263        | TYPEFRAME             | 5             |
-| ...          | ...                   | ...           |
+| S0527        | CSPY Downloader       | 11            |
+| S0347        | AuditCred             | 8             |
 +------------------------------------------------------+
 
 ...
 
 Clustering Summary
-Attacks analyzed : 997
-Families found   : 60
-Largest family   : 166
+Attacks analyzed : 955
+Families found   : 45 (Across all stages)
+Largest family   : 720
 Median family size: 2
-Noise            : 645
-Silhouette Score : 0.01
+Final Noise      : 133
+Stage 1 Silhouette: 0.50
 ```
 
 **3. Phylogenetic Terminal Tree (Topology)** 
@@ -295,21 +293,15 @@ S0527 (CSPY Downloader)
 **6. Predict Next Steps** 
 Estimates the attacker's most probable next behavioral gene.
 ```bash
-python main.py predict T1566.001,T1059.001
+python main.py predict "T1583.001,T1588.002,T1189"
 ```
 *Example Output:*
 ```text
-Ongoing Attack Sequence: ['T1566.001', 'T1059.001']
+Ongoing Attack Sequence (Transitions): ['T1583.001->T1588.002', 'T1588.002->T1189']
 
 Most Probable Next Behaviors:
-+-------------------------------------------------------------------------------------------------+
-| Technique ID | Implementation        | Behavior              | Tactic    | Prob   | Confidence  |
-|--------------+-----------------------+-----------------------+-----------+--------+-------------|
-| T1059.003    | Windows Command Shell | Command and Scripting | execution | 33.3%  | 6.00x       |
-| T1204.002    | Malicious File        | User Execution        | execution | 33.3%  | 6.00x       |
-| T1059.005    | Visual Basic          | Command and Scripting | execution | 33.3%  | 6.00x       |
-+-------------------------------------------------------------------------------------------------+
-* Confidence Score represents the mathematical similarity of the historical sequence matched.
+Predicted Transition      Implementation Transition                   Tactical Flow                                             Probability   Confidence Score
+T1189->T1566.001          Drive-by Compromise -> Spearphishing Attach initial-access->initial-access                            100.0%    1.00x
 ```
 
 ## Limitations & Future Work

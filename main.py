@@ -104,10 +104,18 @@ def cmd_predict(sequence_str: str, top_k: int = 5):
     
     seq = [s.strip() for s in sequence_str.split(',')]
     
-    console.print(f"\n[bold cyan]Ongoing Attack Sequence:[/bold cyan] {seq}")
+    if len(seq) < 2:
+        console.print("[yellow]Please provide at least 2 techniques to form a transition sequence.[/yellow]")
+        return
+        
+    transitions = []
+    for i in range(len(seq) - 1):
+        transitions.append(f"{seq[i]}->{seq[i+1]}")
+    
+    console.print(f"\n[bold cyan]Ongoing Attack Sequence (Transitions):[/bold cyan] {transitions}")
     
     engine = PredictionEngine(genomes)
-    predictions = engine.predict_next(seq, top_k=top_k)
+    predictions = engine.predict_next(transitions, top_k=top_k)
     
     if not predictions:
         console.print("[yellow]Not enough historical data to predict the next step with confidence.[/yellow]")
@@ -115,19 +123,17 @@ def cmd_predict(sequence_str: str, top_k: int = 5):
         
     console.print("\n[bold]Most Probable Next Behaviors:[/bold]")
     table = Table(show_header=True, header_style="bold magenta")
-    table.add_column("Predicted Technique ID", style="dim", width=20)
-    table.add_column("Implementation")
-    table.add_column("Behavior")
-    table.add_column("Tactic", style="italic")
+    table.add_column("Predicted Transition", style="dim", width=25)
+    table.add_column("Implementation Transition")
+    table.add_column("Tactical Flow", style="italic")
     table.add_column("Probability", justify="right")
     table.add_column("Confidence Score", justify="right", style="green")
     
     for gene, prob, confidence in predictions:
         table.add_row(
-            gene.technique_id,
-            gene.implementation,
-            gene.behavior,
-            gene.tactic,
+            f"{gene.source_technique_id}->{gene.target_technique_id}",
+            f"{gene.source_implementation} -> {gene.target_implementation}",
+            f"{gene.source_tactic}->{gene.target_tactic}",
             f"{prob*100:.1f}%",
             f"{confidence:.2f}x"
         )
@@ -149,15 +155,15 @@ def cmd_genome(attack_id: str):
     
     from rich.tree import Tree
     
-    # Group genes by tactic
+    # Group genes by source_tactic
     tactics = {}
     for gene in target.genes:
-        tactics.setdefault(gene.tactic, []).append(gene)
+        tactics.setdefault(gene.source_tactic, []).append(gene)
         
     for i, (tactic, genes) in enumerate(tactics.items()):
         tactic_node = Tree(f"[bold magenta]{tactic.title()}[/bold magenta]")
         for gene in genes:
-            tactic_node.add(f"[cyan]{gene.implementation}[/cyan]")
+            tactic_node.add(f"[cyan]{gene.source_implementation} -> {gene.target_implementation}[/cyan] [dim](-> {gene.target_tactic})[/dim]")
         console.print(tactic_node)
         if i < len(tactics) - 1:
             console.print()

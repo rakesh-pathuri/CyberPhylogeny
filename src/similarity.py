@@ -28,9 +28,9 @@ def sequence_alignment_distance(seq1: List, seq2: List, is_tactic: bool = False)
             if is_tactic:
                 cost = 0.0 if c1 == c2 else 1.0
             else:
-                if c1.technique_id == c2.technique_id:
+                if c1.source_technique_id == c2.source_technique_id and c1.target_technique_id == c2.target_technique_id:
                     cost = 0.0
-                elif c1.tactic == c2.tactic:
+                elif c1.source_tactic == c2.source_tactic and c1.target_tactic == c2.target_tactic:
                     cost = 0.5
                 else:
                     cost = 1.0
@@ -125,8 +125,9 @@ class SimilarityEngine:
             rows = num_hashes // bands
             buckets = defaultdict(list)
             for i in range(n):
-                # Use behavior rather than strict technique_id to align with biological abstraction
-                sig = get_minhash_signature({f"{g.tactic}:{g.behavior}" for g in genomes[i].genes}, num_hashes)
+                # Use tactical transition rather than strict technique transitions for LSH pre-filtering
+                # to ensure we don't accidentally prune valid substitutions.
+                sig = get_minhash_signature({f"{g.source_tactic}->{g.target_tactic}" for g in genomes[i].genes}, num_hashes)
                 for b in range(bands):
                     buckets[(b, tuple(sig[b*rows:(b+1)*rows]))].append(i)
                     

@@ -16,7 +16,7 @@ class PredictionEngine:
         """Builds a lookup table for all known Genes for fast retrieval."""
         for genome in self.genomes:
             for gene in genome.genes:
-                self.gene_lookup[gene.technique_id] = gene
+                self.gene_lookup[f"{gene.source_technique_id}->{gene.target_technique_id}"] = gene
                 
     def predict_next(self, current_sequence: List[str], top_k: int = 5) -> List[Tuple[Gene, float, float]]:
         """
@@ -57,9 +57,9 @@ class PredictionEngine:
                     h_gene = hist_genes[i-1]
                     c_gene = curr_genes[j-1]
                     
-                    if h_gene.technique_id == c_gene.technique_id:
+                    if h_gene.source_technique_id == c_gene.source_technique_id and h_gene.target_technique_id == c_gene.target_technique_id:
                         score = 3.0
-                    elif h_gene.tactic == c_gene.tactic:
+                    elif h_gene.source_tactic == c_gene.source_tactic and h_gene.target_tactic == c_gene.target_tactic:
                         score = 1.0
                     else:
                         score = -2.0
@@ -101,7 +101,8 @@ class PredictionEngine:
             # Score-Weighted Voting
             weight = score
             if weight > 0:
-                prediction_weights[next_gene.technique_id] = prediction_weights.get(next_gene.technique_id, 0.0) + weight
+                transition_id = f"{next_gene.source_technique_id}->{next_gene.target_technique_id}"
+                prediction_weights[transition_id] = prediction_weights.get(transition_id, 0.0) + weight
                 total_weight += weight
                 
         if total_weight == 0:

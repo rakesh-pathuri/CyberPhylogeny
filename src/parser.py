@@ -78,13 +78,14 @@ def parse_mitre_to_genomes(data: dict) -> Tuple[List[Gene], List[Genome]]:
                 # Behavior = Parent Technique Name
                 # Implementation = Sub-technique Name (or Parent Name if no sub-technique)
                 
-                techniques[obj["id"]] = Gene(
-                    technique_id=ext_id,
-                    implementation=obj.get("name", "Unknown Implementation"),
-                    behavior=parent_name,
-                    tactic=primary_tactic,
-                    description=obj.get("description")
-                )
+                # Just store raw info for now, we will construct transition Genes later
+                techniques[obj["id"]] = {
+                    "technique_id": ext_id,
+                    "implementation": obj.get("name", "Unknown Implementation"),
+                    "behavior": parent_name,
+                    "tactic": primary_tactic,
+                    "description": obj.get("description")
+                }
         elif t in ["intrusion-set", "malware", "tool"]:
             ext_id = None
             for ref in obj.get("external_references", []):
@@ -123,20 +124,34 @@ def parse_mitre_to_genomes(data: dict) -> Tuple[List[Gene], List[Genome]]:
     all_genes = list(techniques.values())
     
     for group_id, group_info in groups.items():
-        used_genes = group_to_techniques[group_id]
-        if not used_genes:
+        used_techs = group_to_techniques[group_id]
+        if len(used_techs) < 2:
             continue
             
-        # Sort genes to build the Genome sequence according to kill chain
-        # If multiple genes have the same tactic, sort by gene ID as a secondary key
-        used_genes.sort(key=lambda g: (get_kill_chain_sort_key(g.tactic), g.technique_id))
+        # Sort techniques to build the temporal execution trace
+        used_techs.sort(key=lambda g: (get_kill_chain_sort_key(g["tactic"]), g["technique_id"]))
         
+        # Build Bigram (Transition) Genes
+        transition_genes = []
+        for i in range(len(used_techs) - 1):
+            source = used_techs[i]
+            target = used_techs[i+1]
+            transition = Gene(
+                source_technique_id=source["technique_id"],
+                target_technique_id=target["technique_id"],
+                source_implementation=source["implementation"],
+                target_implementation=target["implementation"],
+                source_tactic=source["tactic"],
+                target_tactic=target["tactic"]
+            )
+            transition_genes.append(transition)
+            
         genomes.append(Genome(
             id=group_info["ext_id"],
             name=group_info["name"],
             description=group_info["description"],
             created=group_info["created"],
-            genes=used_genes
+            genes=transition_genes
         ))
         
-    return all_genes, genomes
+    return [], genomes

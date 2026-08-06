@@ -53,9 +53,9 @@ class EvolutionEngine:
             for j in range(1, m + 1):
                 c1 = seq1[i-1]
                 c2 = seq2[j-1]
-                if c1.technique_id == c2.technique_id:
+                if c1.source_technique_id == c2.source_technique_id and c1.target_technique_id == c2.target_technique_id:
                     cost = 0.0
-                elif c1.tactic == c2.tactic:
+                elif c1.source_tactic == c2.source_tactic and c1.target_tactic == c2.target_tactic:
                     cost = 0.5
                 else:
                     cost = 1.0
@@ -70,7 +70,7 @@ class EvolutionEngine:
         i, j = n, m
         
         while i > 0 or j > 0:
-            if i > 0 and j > 0 and seq1[i-1].technique_id == seq2[j-1].technique_id:
+            if i > 0 and j > 0 and seq1[i-1].source_technique_id == seq2[j-1].source_technique_id and seq1[i-1].target_technique_id == seq2[j-1].target_technique_id:
                 # Match
                 i -= 1
                 j -= 1
@@ -78,18 +78,18 @@ class EvolutionEngine:
                 # Substitution
                 old_gene = ancestor.genes[i-1]
                 new_gene = descendant.genes[j-1]
-                mutations.append(f"Gene Mutated: {old_gene.behavior.upper()} [{old_gene.implementation} -> {new_gene.implementation}]")
+                mutations.append(f"Transition Mutated: [{old_gene.source_implementation}->{old_gene.target_implementation} to {new_gene.source_implementation}->{new_gene.target_implementation}]")
                 i -= 1
                 j -= 1
             elif i > 0 and dp[i][j] == dp[i-1][j] + 1:
                 # Deletion
                 old_gene = ancestor.genes[i-1]
-                mutations.append(f"Gene Dropped: [{old_gene.implementation}]")
+                mutations.append(f"Transition Dropped: [{old_gene.source_implementation}->{old_gene.target_implementation}]")
                 i -= 1
             else:
                 # Insertion
                 new_gene = descendant.genes[j-1]
-                mutations.append(f"Gene Inserted: [{new_gene.implementation}]")
+                mutations.append(f"Transition Inserted: [{new_gene.source_implementation}->{new_gene.target_implementation}]")
                 j -= 1
                 
         # Traceback builds the path backwards, so reverse it
@@ -111,45 +111,45 @@ class EvolutionEngine:
             for j in range(1, m + 1):
                 c1 = seq1[i-1]
                 c2 = seq2[j-1]
-                if c1.technique_id == c2.technique_id:
+                if c1.source_technique_id == c2.source_technique_id and c1.target_technique_id == c2.target_technique_id:
                     cost = 0.0
-                elif c1.tactic == c2.tactic:
+                elif c1.source_tactic == c2.source_tactic and c1.target_tactic == c2.target_tactic:
                     cost = 0.5
                 else:
                     cost = 1.0
                 dp[i][j] = min(dp[i-1][j]+1.0, dp[i][j-1]+1.0, dp[i-1][j-1]+cost)
                 
-        mutation_score = 0.0
+        mutation_distance = 0.0
         aligned = []
         i, j = n, m
         
         while i > 0 or j > 0:
-            if i > 0 and j > 0 and seq1[i-1].technique_id == seq2[j-1].technique_id:
+            if i > 0 and j > 0 and seq1[i-1].source_technique_id == seq2[j-1].source_technique_id and seq1[i-1].target_technique_id == seq2[j-1].target_technique_id:
                 gene = descendant.genes[j-1]
-                aligned.append(f"                   | \\[{gene.tactic}] {gene.behavior}: {gene.implementation}")
+                aligned.append(f"                   | \\[{gene.source_tactic}->{gene.target_tactic}] {gene.source_implementation}->{gene.target_implementation}")
                 i -= 1; j -= 1
             elif i > 0 and j > 0 and dp[i][j] < dp[i-1][j] + 1.0 and dp[i][j] < dp[i][j-1] + 1.0:
                 old_g = ancestor.genes[i-1]
                 new_g = descendant.genes[j-1]
-                if old_g.tactic == new_g.tactic:
-                    mutation_score += 0.5
-                    aligned.append(f"Type: Substitution | \\[{new_g.tactic}] {new_g.behavior}: {new_g.implementation} [red]<-- Mutated (from {old_g.implementation})[/red]")
+                if old_g.source_tactic == new_g.source_tactic and old_g.target_tactic == new_g.target_tactic:
+                    mutation_distance += 0.5
+                    aligned.append(f"Type: Substitution | \\[{new_g.source_tactic}->{new_g.target_tactic}] {new_g.source_implementation}->{new_g.target_implementation} [red]<-- Mutated (from {old_g.source_implementation}->{old_g.target_implementation})[/red]")
                 else:
-                    mutation_score += 1.0
-                    aligned.append(f"Type: Tactic Shift | \\[{new_g.tactic}] {new_g.behavior}: {new_g.implementation} [red]<-- Tactic Shift (from \\[{old_g.tactic}] {old_g.implementation})[/red]")
+                    mutation_distance += 1.0
+                    aligned.append(f"Type: Tactic Shift | \\[{new_g.source_tactic}->{new_g.target_tactic}] {new_g.source_implementation}->{new_g.target_implementation} [red]<-- Tactic Shift (from \\[{old_g.source_tactic}->{old_g.target_tactic}] {old_g.source_implementation}->{old_g.target_implementation})[/red]")
                 i -= 1; j -= 1
             elif i > 0 and dp[i][j] == dp[i-1][j] + 1:
-                mutation_score += 1.0
+                mutation_distance += 1.0
                 old_g = ancestor.genes[i-1]
-                aligned.append(f"Type: Deletion     | [strike]\\[{old_g.tactic}] {old_g.behavior}: {old_g.implementation}[/strike] [yellow]<-- Dropped[/yellow]")
+                aligned.append(f"Type: Deletion     | [strike]\\[{old_g.source_tactic}->{old_g.target_tactic}] {old_g.source_implementation}->{old_g.target_implementation}[/strike] [yellow]<-- Dropped[/yellow]")
                 i -= 1
             else:
-                mutation_score += 1.0
+                mutation_distance += 1.0
                 new_g = descendant.genes[j-1]
-                aligned.append(f"Type: Insertion    | \\[{new_g.tactic}] {new_g.behavior}: {new_g.implementation} [green]<-- New Gene[/green]")
+                aligned.append(f"Type: Insertion    | \\[{new_g.source_tactic}->{new_g.target_tactic}] {new_g.source_implementation}->{new_g.target_implementation} [green]<-- New Transition[/green]")
                 j -= 1
                 
-        return aligned[::-1], mutation_score
+        return aligned[::-1], mutation_distance
 
     def build_terminal_tree(self, family_genomes: List[Genome]) -> "rich.tree.Tree":
         from rich.tree import Tree
@@ -194,7 +194,7 @@ class EvolutionEngine:
                 label = f"[bold cyan]Ancestor: {genome.id} ({genome.name})[/bold cyan]"
                 current_branch = root_tree.add(label)
                 for gene in genome.genes:
-                    current_branch.add(f"\\[{gene.tactic}] {gene.behavior}: {gene.implementation}")
+                    current_branch.add(f"\\[{gene.source_tactic}->{gene.target_tactic}] {gene.source_implementation}->{gene.target_implementation}")
             else:
                 # Find parent in our MST
                 parent_idx = None
@@ -205,8 +205,8 @@ class EvolutionEngine:
                         
                 parent_genome = family_genomes[parent_idx]
                 # Recompute distance for MST branch length
-                mutation_score = sequence_alignment_distance(parent_genome.genes, genome.genes, is_tactic=False)
-                label = f"[bold magenta]{genome.id} ({genome.name})[/bold magenta] [dim](+{mutation_score:.1f})[/dim]"
+                mutation_distance = sequence_alignment_distance(parent_genome.genes, genome.genes, is_tactic=False)
+                label = f"[bold magenta]{genome.id} ({genome.name})[/bold magenta] [dim](+{mutation_distance:.1f})[/dim]"
                 current_branch = root_tree.add(label)
                     
             # Recurse for children
@@ -331,9 +331,9 @@ class EvolutionEngine:
             for j in range(1, m + 1):
                 c1 = seq1[i-1]
                 c2 = seq2[j-1]
-                if c1.technique_id == c2.technique_id:
+                if c1.source_technique_id == c2.source_technique_id and c1.target_technique_id == c2.target_technique_id:
                     cost = 0.0
-                elif c1.tactic == c2.tactic:
+                elif c1.source_tactic == c2.source_tactic and c1.target_tactic == c2.target_tactic:
                     cost = 0.5
                 else:
                     cost = 1.0
@@ -344,11 +344,11 @@ class EvolutionEngine:
         i, j = n, m
         
         while i > 0 or j > 0:
-            if i > 0 and j > 0 and seq1[i-1].technique_id == seq2[j-1].technique_id:
+            if i > 0 and j > 0 and seq1[i-1].source_technique_id == seq2[j-1].source_technique_id and seq1[i-1].target_technique_id == seq2[j-1].target_technique_id:
                 ancestral_genes.append(seq1[i-1])
                 i -= 1; j -= 1
             elif i > 0 and j > 0 and dp[i][j] < dp[i-1][j] + 1.0 and dp[i][j] < dp[i][j-1] + 1.0:
-                if seq1[i-1].tactic == seq2[j-1].tactic:
+                if seq1[i-1].source_tactic == seq2[j-1].source_tactic and seq1[i-1].target_tactic == seq2[j-1].target_tactic:
                     ancestral_genes.append(seq1[i-1])
                 i -= 1; j -= 1
             elif i > 0 and dp[i][j] == dp[i-1][j] + 1:
@@ -378,9 +378,9 @@ class EvolutionEngine:
             for j in range(1, m + 1):
                 c1 = seq1[i-1]
                 c2 = seq2[j-1]
-                if c1.technique_id == c2.technique_id:
+                if c1.source_technique_id == c2.source_technique_id and c1.target_technique_id == c2.target_technique_id:
                     cost = 0.0
-                elif c1.tactic == c2.tactic:
+                elif c1.source_tactic == c2.source_tactic and c1.target_tactic == c2.target_tactic:
                     cost = 0.5
                 else:
                     cost = 1.0
@@ -393,28 +393,28 @@ class EvolutionEngine:
         # Traverse and collect backwards
         ops = []
         while i > 0 or j > 0:
-            if i > 0 and j > 0 and seq1[i-1].technique_id == seq2[j-1].technique_id:
+            if i > 0 and j > 0 and seq1[i-1].source_technique_id == seq2[j-1].source_technique_id and seq1[i-1].target_technique_id == seq2[j-1].target_technique_id:
                 i -= 1; j -= 1
             elif i > 0 and j > 0 and dp[i][j] < dp[i-1][j] + 1.0 and dp[i][j] < dp[i][j-1] + 1.0:
                 old_g = ancestor.genes[i-1]
                 new_g = descendant.genes[j-1]
-                if old_g.tactic == new_g.tactic:
+                if old_g.source_tactic == new_g.source_tactic and old_g.target_tactic == new_g.target_tactic:
                     mutation_score += 0.5
-                    ops.append((new_g.tactic, f"[yellow]\\[~][/yellow] {old_g.implementation} -> {new_g.implementation}"))
+                    ops.append((f"{new_g.source_tactic}->{new_g.target_tactic}", f"[yellow]\\[~][/yellow] ({old_g.source_implementation}->{old_g.target_implementation}) to ({new_g.source_implementation}->{new_g.target_implementation})"))
                 else:
                     mutation_score += 1.0
-                    ops.append((old_g.tactic, f"[red]\\[-][/red] {old_g.implementation} [dim](Dropped Tactic Shift)[/dim]"))
-                    ops.append((new_g.tactic, f"[green]\\[+][/green] {new_g.implementation} [dim](New Tactic Shift from {old_g.tactic})[/dim]"))
+                    ops.append((f"{old_g.source_tactic}->{old_g.target_tactic}", f"[red]\\[-][/red] {old_g.source_implementation}->{old_g.target_implementation} [dim](Dropped Tactic Shift)[/dim]"))
+                    ops.append((f"{new_g.source_tactic}->{new_g.target_tactic}", f"[green]\\[+][/green] {new_g.source_implementation}->{new_g.target_implementation} [dim](New Tactic Shift from {old_g.source_tactic}->{old_g.target_tactic})[/dim]"))
                 i -= 1; j -= 1
             elif i > 0 and dp[i][j] == dp[i-1][j] + 1:
                 mutation_score += 1.0
                 old_g = ancestor.genes[i-1]
-                ops.append((old_g.tactic, f"[red]\\[-][/red] {old_g.implementation} [dim](Dropped)[/dim]"))
+                ops.append((f"{old_g.source_tactic}->{old_g.target_tactic}", f"[red]\\[-][/red] {old_g.source_implementation}->{old_g.target_implementation} [dim](Dropped)[/dim]"))
                 i -= 1
             else:
                 mutation_score += 1.0
                 new_g = descendant.genes[j-1]
-                ops.append((new_g.tactic, f"[green]\\[+][/green] {new_g.implementation} [dim](New Gene)[/dim]"))
+                ops.append((f"{new_g.source_tactic}->{new_g.target_tactic}", f"[green]\\[+][/green] {new_g.source_implementation}->{new_g.target_implementation} [dim](New Transition)[/dim]"))
                 j -= 1
                 
         ops.reverse()
