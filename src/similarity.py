@@ -99,7 +99,17 @@ class SimilarityEngine:
             families_s3 = {-1: []}
             score_s3 = 0.0
             
-        return families_s1, families_s2, families_s3, score_s1
+        # Extract orphans from Stage 3 (label -1)
+        orphans_s3 = families_s3.get(-1, [])
+        if orphans_s3:
+            console.print(f"\n[bold cyan]--- STAGE 4: Unordered Motif Matching (Parent Techniques) ---[/bold cyan]")
+            console.print(f"[dim]Analyzing {len(orphans_s3)} orphans from Stage 3 with eps=0.85...[/dim]")
+            families_s4, score_s4 = self._cluster_with_metric(orphans_s3, metric_type="jaccard_parents", eps=0.85, min_samples=min_samples)
+        else:
+            families_s4 = {-1: []}
+            score_s4 = 0.0
+            
+        return families_s1, families_s2, families_s3, families_s4, score_s1
 
     def _cluster_with_metric(self, genomes: List[Genome], metric_type: str, eps: float, min_samples: int):
         n = len(genomes)
@@ -115,6 +125,8 @@ class SimilarityEngine:
             seqs = [g.to_gene_set() for g in genomes]
         elif metric_type == "alignment_parents":
             seqs = [g.to_parent_technique_sequence() for g in genomes]
+        elif metric_type == "jaccard_parents":
+            seqs = [g.to_parent_set() for g in genomes]
             
         # LSH Pre-filtering
         candidates = set()
@@ -142,7 +154,8 @@ class SimilarityEngine:
             display_name = {
                 "alignment_genes": "Weighted Sequence Alignment",
                 "jaccard_genes": "Jaccard Motif Matching",
-                "alignment_parents": "Taxonomic Zooming (Parent Techniques)"
+                "alignment_parents": "Taxonomic Zooming (Parent Techniques)",
+                "jaccard_parents": "Taxonomic Motif Matching (Parent Techniques)"
             }.get(metric_type, metric_type)
             
             task = progress.add_task(f"[cyan]Calculating distances ({display_name})...", total=n)
@@ -156,7 +169,7 @@ class SimilarityEngine:
                         continue
                         
                     seq_j = seqs[j]
-                    if metric_type == "jaccard_genes":
+                    if metric_type in ["jaccard_genes", "jaccard_parents"]:
                         dist = jaccard_distance(seq_i, seq_j)
                     else:
                         max_len = max(len(seq_i), len(seq_j))

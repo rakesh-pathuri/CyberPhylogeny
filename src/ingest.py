@@ -86,12 +86,25 @@ def load_from_db(session: Session) -> Tuple[List[Gene], List[Genome]]:
         for link in dbg.genes:
             sequence.append(gene_map[link.gene_id])
             
-        genomes.append(Genome(
-            id=dbg.id,
+        genome = Genome(
+            attack_id=dbg.id,
             name=dbg.name,
-            description=dbg.description,
-            created=datetime.fromisoformat(dbg.created) if dbg.created else datetime.now(),
-            genes=sequence
-        ))
+            created=datetime.fromisoformat(dbg.created) if dbg.created else datetime.now()
+        )
+        genome.description = dbg.description
+        genome.genes = sequence
+        genome.family_id = dbg.family_id
+        genome.stage = dbg.stage
+        genomes.append(genome)
         
     return all_genes, genomes
+
+def update_genome_families(session: Session, genomes: List[Genome]):
+    """Updates the family_id and stage of the given genomes in the DB."""
+    for gnm in genomes:
+        db_genome = session.query(DBGenome).filter_by(id=gnm.id).first()
+        if db_genome:
+            db_genome.family_id = gnm.family_id
+            db_genome.stage = gnm.stage
+    session.commit()
+

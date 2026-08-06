@@ -161,7 +161,7 @@ class EvolutionEngine:
         dist_matrix = np.zeros((n, n))
         for i in range(n):
             for j in range(i+1, n):
-                d = sequence_alignment_distance(family_genomes[i].genes, family_genomes[j].genes, is_tactic=False)
+                d = sequence_alignment_distance(family_genomes[i].genes, family_genomes[j].genes, is_string_match=False)
                 dist_matrix[i][j] = dist_matrix[j][i] = d
                 
         root_idx = min(range(n), key=lambda idx: family_genomes[idx].created)
@@ -205,7 +205,7 @@ class EvolutionEngine:
                         
                 parent_genome = family_genomes[parent_idx]
                 # Recompute distance for MST branch length
-                mutation_distance = sequence_alignment_distance(parent_genome.genes, genome.genes, is_tactic=False)
+                mutation_distance = sequence_alignment_distance(parent_genome.genes, genome.genes, is_string_match=False)
                 label = f"[bold magenta]{genome.id} ({genome.name})[/bold magenta] [dim](+{mutation_distance:.1f})[/dim]"
                 current_branch = root_tree.add(label)
                     
@@ -229,9 +229,9 @@ class EvolutionEngine:
         # Initialize distance matrix
         dist_matrix = np.zeros((n, n))
         for i in range(n):
-            for j in range(i+1, n):
-                d = sequence_alignment_distance(family_genomes[i].genes, family_genomes[j].genes, is_tactic=False)
-                dist_matrix[i][j] = dist_matrix[j][i] = d
+            for j in range(i + 1, n):
+                d = sequence_alignment_distance(family_genomes[i].genes, family_genomes[j].genes, is_string_match=False)
+                dist_matrix[i, j] = dist_matrix[j, i] = d
 
         # UPGMA state tracking
         clusters = {i: {"id": i, "genome": family_genomes[i], "height": 0.0, "children": []} for i in range(n)}

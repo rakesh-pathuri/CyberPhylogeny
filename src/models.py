@@ -27,6 +27,8 @@ class Genome(BaseModel):
     description: Optional[str] = None
     created: datetime
     genes: List[Gene] = Field(default_factory=list)
+    family_id: Optional[str] = None
+    stage: Optional[str] = None
     
     def to_sequence(self) -> List[str]:
         """Returns ordered list of Gene transition signatures."""
@@ -43,3 +45,7 @@ class Genome(BaseModel):
     def to_parent_technique_sequence(self) -> List[str]:
         """Returns ordered list of Parent Technique transitions (Stage 3: Taxonomic Zooming)."""
         return [f"{g.source_technique_id.split('.')[0]}->{g.target_technique_id.split('.')[0]}" for g in self.genes]
+        
+    def to_parent_set(self) -> set[str]:
+        """Returns unordered set of Parent Technique transitions (Stage 4)."""
+        return {f"{g.source_technique_id.split('.')[0]}->{g.target_technique_id.split('.')[0]}" for g in self.genes}

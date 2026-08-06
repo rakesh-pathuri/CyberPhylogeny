@@ -43,7 +43,7 @@ def cmd_cluster(eps: float, min_samples: int, eps_s3: float = 0.65):
     genomes = get_cached_genomes()
     
     sim_engine = SimilarityEngine(genomes)
-    f1, f2, f3, score_s1 = sim_engine.run_multi_stage_pipeline(eps, min_samples, eps_s3)
+    f1, f2, f3, f4, score_s1 = sim_engine.run_multi_stage_pipeline(eps, min_samples, eps_s3)
     
     def print_families(families, stage_name):
         console.print(f"\n[bold]{stage_name} Families[/bold]")
@@ -66,28 +66,48 @@ def cmd_cluster(eps: float, min_samples: int, eps_s3: float = 0.65):
             console.print(table)
             
     print_families(f1, "STAGE 1: Evolutionary Ancestry (Weighted Sequence Alignment)")
-    if f2 and len(f2) > 1: # More than just orphans
+    if len(f2) > 1 or (len(f2) == 1 and -1 not in f2):
         print_families(f2, "STAGE 2: Unordered Motif (Jaccard)")
-    if f3 and len(f3) > 1:
+    if len(f3) > 1 or (len(f3) == 1 and -1 not in f3):
         print_families(f3, "STAGE 3: Taxonomic Zooming (Tactics)")
+    if len(f4) > 1 or (len(f4) == 1 and -1 not in f4):
+        print_families(f4, "STAGE 4: Taxonomic Motif (Jaccard)")
         
-    # Print Clustering Summary
-    console.print("\n[bold cyan]Clustering Summary[/bold cyan]")
-    
-    valid_sizes = []
-    for f in [f1, f2, f3]:
-        valid_sizes.extend([len(fam) for lbl, fam in f.items() if lbl != -1])
-        
-    final_noise = len(f3.get(-1, [])) if f3 else len(f2.get(-1, [])) if f2 else len(f1.get(-1, []))
-    
+    num_fams = sum(len(f)-1 for f in [f1, f2, f3, f4] if -1 in f) + sum(len(f) for f in [f1, f2, f3, f4] if -1 not in f)
     import numpy as np
+    largest_family = max([len(v) for f in [f1, f2, f3, f4] for k,v in f.items() if k != -1], default=0)
+    median_size = int(np.median([len(v) for f in [f1, f2, f3, f4] for k,v in f.items() if k != -1])) if num_fams > 0 else 0
+    
+    # Extract final noise from f4
+    final_noise = len(f4.get(-1, []))
+    
+    console.print(f"\n[bold cyan]Clustering Summary[/bold cyan]")
     console.print(f"Attacks analyzed : {len(genomes)}")
-    console.print(f"Families found   : {len(valid_sizes)} (Across all stages)")
-    if valid_sizes:
-        console.print(f"Largest family   : {max(valid_sizes)}")
-        console.print(f"Median family size: {int(np.median(valid_sizes))}")
+    console.print(f"Families found   : {num_fams} (Across all stages)")
+    console.print(f"Largest family   : {largest_family}")
+    console.print(f"Median family size: {median_size}")
     console.print(f"Final Noise      : {final_noise}")
-    console.print(f"Stage 1 Silhouette: {score_s1:.2f}")
+    console.print(f"Stage 1 Silhouette: {score_s1:.2f}\n")
+    
+    # Save assignments to database
+    console.print("[cyan]Saving cluster assignments to database...[/cyan]")
+    for stage_idx, families in enumerate([f1, f2, f3, f4], 1):
+        for label, g_list in families.items():
+            if label == -1: continue
+            for g in g_list:
+                g.family_id = str(label)
+                g.stage = stage_idx
+                
+    # Handle final orphans
+    for g in f4.get(-1, []):
+        g.family_id = "-1"
+        g.stage = -1
+        
+    from src.database import init_db
+    from src.ingest import update_genome_families
+    _, session = init_db()
+    update_genome_families(session, genomes)
+    console.print("[green]Cluster cache updated.[/green]")
 
 def cmd_evolution(eps: float, min_samples: int, target_family: int):
     """Clusters the attacks, then traces mutations within a specific family."""
@@ -185,19 +205,21 @@ def cmd_genome(attack_id: str):
             
     console.print(f"\n[bold]Genome Size[/bold] : {len(target.genes)} Genes")
     
-    # Calculate family and generation
-    sim_engine = SimilarityEngine(genomes)
-    families, _ = sim_engine._cluster_with_metric(genomes, metric_type="alignment_genes", eps=0.45, min_samples=2)
+    # Check cache for family
+    family_id = target.family_id
+    stage = target.stage
     
-    target_family = None
-    family_id = None
-    for label, family in families.items():
-        if target in family:
-            target_family = family
-            family_id = label
-            break
-            
-    if target_family and family_id != -1:
+    if not family_id:
+        console.print("\n[yellow]Clustering cache not found. Please run 'python main.py cluster' first.[/yellow]")
+        return
+        
+    if str(family_id) == "-1":
+        console.print("[bold yellow]Status[/bold yellow] : Orphan (No Evolutionary Ancestry Found)")
+        return
+        
+    target_family = [g for g in genomes if str(g.family_id) == str(family_id) and str(g.stage) == str(stage)]
+    
+    if target_family and str(family_id) != "-1":
         n = len(target_family)
         import numpy as np
         from src.similarity import sequence_alignment_distance
@@ -240,30 +262,23 @@ def cmd_genome(attack_id: str):
             mutation_index = dist_matrix[parent_idx][target_idx]
             console.print(f"[bold]Mutation Index[/bold] : {mutation_index:.1f}")
             
-        console.print(f"[bold]Family[/bold] : {family_id}")
+        console.print(f"[bold]Family[/bold] : {family_id} (Stage {stage})")
         console.print(f"[bold]Generation[/bold] : {generation}")
-    elif family_id == -1:
-        console.print("[bold yellow]Status[/bold yellow] : Orphan (No Evolutionary Ancestry Found)")
 
-def cmd_tree(eps: float, min_samples: int, eps_s3: float, stage: int, target_family: int, algo: str):
+def cmd_tree(stage: int, target_family: int, algo: str):
     """Generates a Phylogenetic Tree for a family."""
     genomes = get_cached_genomes()
     
-    sim_engine = SimilarityEngine(genomes)
-    f1, f2, f3, _ = sim_engine.run_multi_stage_pipeline(eps=eps, min_samples=min_samples, eps_s3=eps_s3)
+    family_genomes = [g for g in genomes if str(g.family_id) == str(target_family) and str(g.stage) == str(stage)]
     
-    stages = {1: f1, 2: f2, 3: f3}
-    families = stages[stage]
-    
-    if target_family not in families:
-        console.print(f"[red]Family {target_family} not found in Stage {stage}.[/red]")
+    if not family_genomes:
+        console.print(f"[red]Family {target_family} not found in Stage {stage} cache. Run 'python main.py cluster' first.[/red]")
         return
         
-    if target_family == -1:
+    if str(target_family) == "-1":
         console.print("[red]Cannot generate a phylogenetic tree for the Noise/Orphan cluster (-1).[/red]")
         return
         
-    family_genomes = families[target_family]
     evo_engine = EvolutionEngine(genomes)
     
     console.print(f"\n[bold cyan]Phylogenetic Tree for Family {target_family} (Stage {stage}) ({len(family_genomes)} variants)[/bold cyan]")
@@ -406,10 +421,7 @@ if __name__ == "__main__":
     parser_tree = subparsers.add_parser("tree", help="Build a Phylogenetic Tree for a specific family")
     parser_tree.add_argument("family", type=str, help="Family ID to trace (e.g., '24')")
     parser_tree.add_argument("--algo", type=str, default="mst", choices=["mst", "upgma"], help="Algorithm to build tree (mst or upgma)")
-    parser_tree.add_argument("--stage", type=int, default=3, choices=[1, 2, 3], help="Stage to pull the family from (default: 3)")
-    parser_tree.add_argument("--eps", type=float, default=0.45, help="DBSCAN epsilon used for Stage 1/2 clustering")
-    parser_tree.add_argument("--eps3", type=float, default=0.65, help="DBSCAN epsilon used for Stage 3 clustering")
-    parser_tree.add_argument("--min_samples", type=int, default=2, help="Minimum samples used for clustering")
+    parser_tree.add_argument("--stage", type=int, default=4, choices=[1, 2, 3, 4], help="Stage to pull the family from (default: 4)")
     
     # 5. Predict
     parser_predict = subparsers.add_parser("predict", help="Predict next steps of an ongoing attack")
@@ -437,7 +449,7 @@ if __name__ == "__main__":
     elif args.command == "genome":
         cmd_genome(args.attack_id)
     elif args.command == "tree":
-        cmd_tree(args.eps, args.min_samples, args.eps3, args.stage, int(args.family), args.algo)
+        cmd_tree(args.stage, int(args.family), args.algo)
     elif args.command == "predict":
         cmd_predict(args.sequence, args.k)
     elif args.command == "diff":

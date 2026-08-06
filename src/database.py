@@ -11,6 +11,8 @@ class DBGenome(Base):
     name = Column(String, nullable=False)
     description = Column(Text)
     created = Column(String) # Store ISO formatted datetime string
+    family_id = Column(Integer, nullable=True)
+    stage = Column(Integer, nullable=True)
     
     # Ordered relationship to genes
     genes = relationship("DBGenomeGene", back_populates="genome", order_by="DBGenomeGene.sequence_order", cascade="all, delete-orphan")
