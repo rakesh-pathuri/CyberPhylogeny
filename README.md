@@ -152,10 +152,10 @@ python main.py tree 24 --algo upgma
 Phylogenetic Tree for Family 24 (3 variants)
 Algorithm: UPGMA
 UPGMA Dendrogram (Root Height: 3.88)
-+-- S0527 (CSPY Downloader) (branch: 3.88)
-`-- Common Ancestor (height: 3.50, branch: 0.38)
-    +-- S0347 (AuditCred) (branch: 3.50)
-    `-- S0263 (TYPEFRAME) (branch: 3.50)
++-- ------------------- S0527 (CSPY Downloader) (branch: 3.88)
+`-- - Common Ancestor (height: 3.50, branch: 0.38)
+    +-- ----------------- S0347 (AuditCred) (branch: 3.50)
+    `-- ----------------- S0263 (TYPEFRAME) (branch: 3.50)
 ```
 
 **4. Mutation Diff (Forensic Report)**
@@ -166,7 +166,7 @@ python main.py diff S0347 S0527
 *Example Output:*
 ```text
 Attack : S0527 (CSPY Downloader)
-Mutation Score : 7.5
+Mutation Distance : 7.5
 
 Mutations
 
@@ -178,17 +178,23 @@ Mutations
   [~] File and Directory Discovery (from discovery) -> Bypass User Account Control
 ```
 
-**5. Lineage Trace**
-Traces the evolutionary chain of a specific attack back to its root.
+**5. Ancestry Trace**
+Traces the evolutionary ancestry of a specific attack back to its root.
 ```bash
-python main.py lineage S0527
+python main.py ancestry S0527
 ```
 *Example Output:*
 ```text
-Lineage for S0527
-Root: S0263 (TYPEFRAME)
-`-- S0347 (AuditCred)
-    `-- S0527 (CSPY Downloader)
+Ancestry for S0527
+S0263 (TYPEFRAME)
+  | (distance = 7.00)
+  v
+S0347 (AuditCred)
+  | (distance = 7.50)
+  v
+S0527 (CSPY Downloader)
+
+* Ancestry inferred via Maximum Parsimony (Minimum Spanning Tree)
 ```
 
 **6. Predict Next Steps** 

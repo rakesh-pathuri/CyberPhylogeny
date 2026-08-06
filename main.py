@@ -197,7 +197,7 @@ def cmd_diff(ancestor_id: str, descendant_id: str):
     grouped_mutations, score = evo_engine.get_tactic_grouped_mutations(ancestor, descendant)
     
     console.print(f"\n[bold cyan]Attack : {descendant.id} ({descendant.name})[/bold cyan]")
-    console.print(f"[bold red]Mutation Score : {score}[/bold red]\n")
+    console.print(f"[bold red]Mutation Distance : {score}[/bold red]\n")
     console.print("[bold]Mutations[/bold]")
     
     if not grouped_mutations:
@@ -209,8 +209,8 @@ def cmd_diff(ancestor_id: str, descendant_id: str):
         for op in ops:
             console.print("  " + op)
 
-def cmd_lineage(attack_id: str):
-    """Traces the evolutionary chain of a specific attack back to its root."""
+def cmd_ancestry(attack_id: str):
+    """Traces the evolutionary ancestry of a specific attack back to its root."""
     data = fetch_mitre_data()
     _, genomes = parse_mitre_to_genomes(data)
     
@@ -220,7 +220,6 @@ def cmd_lineage(attack_id: str):
         return
         
     sim_engine = SimilarityEngine(genomes)
-    # We must cluster to find its family and the MST path
     families = sim_engine._cluster_with_metric(genomes, metric_type="levenshtein_genes", eps=0.6, min_samples=2)
     
     target_family = None
@@ -233,7 +232,6 @@ def cmd_lineage(attack_id: str):
         console.print(f"[red]Attack ID '{attack_id}' is an orphan (not in any evolutionary family).[/red]")
         return
         
-    # Rebuild MST logic to find path
     n = len(target_family)
     import numpy as np
     from src.similarity import sequence_alignment_distance
@@ -264,7 +262,6 @@ def cmd_lineage(attack_id: str):
             children[u].append(v)
             parents[v] = u
             
-    # Trace path back from target to root
     path = []
     curr = target_idx
     while curr is not None:
@@ -273,22 +270,21 @@ def cmd_lineage(attack_id: str):
         
     path.reverse()
     
-    from rich.tree import Tree
-    console.print(f"\n[bold cyan]Lineage for {target.id}[/bold cyan]")
+    console.print(f"\n[bold cyan]Ancestry for {target.id}[/bold cyan]")
     
-    if len(path) == 1:
-        console.print(f"[bold cyan]Root: {target.id} ({target.name})[/bold cyan]")
-        return
-        
-    lineage_tree = Tree(f"[bold cyan]Root: {path[0].id} ({path[0].name})[/bold cyan]")
-    curr_branch = lineage_tree
+    console.print(f"[bold cyan]{path[0].id} ({path[0].name})[/bold cyan]")
     
     for i in range(1, len(path)):
         node = path[i]
-        label = f"[bold magenta]{node.id} ({node.name})[/bold magenta]"
-        curr_branch = curr_branch.add(label)
+        parent_idx_in_family = target_family.index(path[i-1])
+        node_idx_in_family = target_family.index(node)
+        d = dist_matrix[parent_idx_in_family][node_idx_in_family]
         
-    console.print(lineage_tree)
+        console.print(f"[dim]  | (distance = {d:.2f})[/dim]")
+        console.print("[dim]  v[/dim]")
+        console.print(f"[bold magenta]{node.id} ({node.name})[/bold magenta]")
+        
+    console.print("\n[dim italic]* Ancestry inferred via Maximum Parsimony (Minimum Spanning Tree)[/dim italic]\n")
     
 
 
@@ -326,9 +322,9 @@ if __name__ == "__main__":
     parser_diff.add_argument("ancestor", type=str, help="Ancestor Attack ID (e.g., 'S0347')")
     parser_diff.add_argument("descendant", type=str, help="Descendant Attack ID (e.g., 'S0527')")
     
-    # 7. Lineage
-    parser_lineage = subparsers.add_parser("lineage", help="Trace the evolutionary chain of a specific attack")
-    parser_lineage.add_argument("attack_id", type=str, help="Target Attack ID (e.g., 'S0527')")
+    # 7. Ancestry
+    parser_ancestry = subparsers.add_parser("ancestry", help="Trace the evolutionary ancestry of a specific attack")
+    parser_ancestry.add_argument("attack_id", type=str, help="Target Attack ID (e.g., 'S0527')")
 
     args = parser.parse_args()
     
@@ -344,8 +340,8 @@ if __name__ == "__main__":
         cmd_predict(args.sequence, args.k)
     elif args.command == "diff":
         cmd_diff(args.ancestor, args.descendant)
-    elif args.command == "lineage":
-        cmd_lineage(args.attack_id)
+    elif args.command == "ancestry":
+        cmd_ancestry(args.attack_id)
 
     else:
         parser.print_help()

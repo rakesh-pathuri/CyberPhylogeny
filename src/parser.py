@@ -32,7 +32,7 @@ def get_kill_chain_sort_key(tactic_name: str) -> int:
 
 def fetch_mitre_data() -> dict:
     """Fetches the latest MITRE ATT&CK Enterprise STIX JSON."""
-    console.print("[cyan]Fetching MITRE ATT&CK Enterprise dataset...[/cyan]")
+    console.print("[cyan]Loading cached ATT&CK Genome Repository...[/cyan]")
     response = requests.get(MITRE_URL)
     response.raise_for_status()
     return response.json()

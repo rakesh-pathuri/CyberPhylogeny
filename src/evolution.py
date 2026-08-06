@@ -294,17 +294,19 @@ class EvolutionEngine:
         # Build rich tree
         root_tree = Tree(f"[bold white]UPGMA Dendrogram (Root Height: {root_cluster['height']:.2f})[/bold white]")
         
-        def traverse(node, tree_node, parent_genome, parent_height):
-            branch_len = parent_height - node["height"]
+        def traverse(node: dict, tree_node: "rich.tree.Tree", parent_genome=None, parent_height=0.0):
+            branch_len = parent_height - node["height"] if parent_height > 0 else 0.0
+            dash_count = max(1, int(branch_len * 5))
+            dashes = "-" * dash_count
             
             if len(node["children"]) == 0:
                 # Leaf node
                 g = node["genome"]
-                label = f"[bold cyan]{g.id} ({g.name})[/bold cyan] [dim](branch: {branch_len:.2f})[/dim]"
+                label = f"[dim]{dashes}[/dim] [bold cyan]{g.id} ({g.name})[/bold cyan] [dim](branch: {branch_len:.2f})[/dim]"
                 leaf = tree_node.add(label)
             else:
                 # Internal node
-                label = f"[bold yellow]Common Ancestor[/bold yellow] [dim](height: {node['height']:.2f}, branch: {branch_len:.2f})[/dim]"
+                label = f"[dim]{dashes}[/dim] [bold yellow]Common Ancestor[/bold yellow] [dim](height: {node['height']:.2f}, branch: {branch_len:.2f})[/dim]"
                 new_branch = tree_node.add(label)
                     
                 for child in node["children"]:
@@ -401,7 +403,8 @@ class EvolutionEngine:
                     ops.append((new_g.tactic, f"[yellow]\\[~][/yellow] {old_g.implementation} -> {new_g.implementation}"))
                 else:
                     mutation_score += 1.0
-                    ops.append((new_g.tactic, f"[yellow]\\[~][/yellow] {old_g.implementation} [dim](from {old_g.tactic})[/dim] -> {new_g.implementation}"))
+                    ops.append((old_g.tactic, f"[red]\\[-][/red] {old_g.implementation} [dim](Dropped Tactic Shift)[/dim]"))
+                    ops.append((new_g.tactic, f"[green]\\[+][/green] {new_g.implementation} [dim](New Tactic Shift from {old_g.tactic})[/dim]"))
                 i -= 1; j -= 1
             elif i > 0 and dp[i][j] == dp[i-1][j] + 1:
                 mutation_score += 1.0
