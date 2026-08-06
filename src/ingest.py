@@ -60,42 +60,41 @@ def load_from_db(session: Session) -> Tuple[List[Gene], List[Genome]]:
     if not db_genomes:
         return [], []
         
-    console.print(f"[cyan]Loading {len(db_genomes)} Genomes from local DB cache...[/cyan]")
-    
     genomes = []
     all_genes = []
     
-    # Load all genes to cache
-    db_genes = session.query(DBGene).all()
-    gene_map = {}
-    for dbg in db_genes:
-        g = Gene(
-            source_technique_id=dbg.source_technique_id,
-            target_technique_id=dbg.target_technique_id,
-            source_implementation=dbg.source_implementation,
-            target_implementation=dbg.target_implementation,
-            source_tactic=dbg.source_tactic,
-            target_tactic=dbg.target_tactic
-        )
-        gene_map[dbg.id] = g
-        all_genes.append(g)
-        
-    for dbg in db_genomes:
-        # DBGenomeGene automatically orders by sequence_order
-        sequence = []
-        for link in dbg.genes:
-            sequence.append(gene_map[link.gene_id])
+    with console.status(f"[cyan]Loading {len(db_genomes)} Genomes from local DB cache...[/cyan]", spinner="dots"):
+        # Load all genes to cache
+        db_genes = session.query(DBGene).all()
+        gene_map = {}
+        for dbg in db_genes:
+            g = Gene(
+                source_technique_id=dbg.source_technique_id,
+                target_technique_id=dbg.target_technique_id,
+                source_implementation=dbg.source_implementation,
+                target_implementation=dbg.target_implementation,
+                source_tactic=dbg.source_tactic,
+                target_tactic=dbg.target_tactic
+            )
+            gene_map[dbg.id] = g
+            all_genes.append(g)
             
-        genome = Genome(
-            id=dbg.id,
-            name=dbg.name,
-            created=datetime.fromisoformat(dbg.created) if dbg.created else datetime.now()
-        )
-        genome.description = dbg.description
-        genome.genes = sequence
-        genome.family_id = dbg.family_id
-        genome.stage = dbg.stage
-        genomes.append(genome)
+        for dbg in db_genomes:
+            # DBGenomeGene automatically orders by sequence_order
+            sequence = []
+            for link in dbg.genes:
+                sequence.append(gene_map[link.gene_id])
+                
+            genome = Genome(
+                id=dbg.id,
+                name=dbg.name,
+                created=datetime.fromisoformat(dbg.created) if dbg.created else datetime.now()
+            )
+            genome.description = dbg.description
+            genome.genes = sequence
+            genome.family_id = dbg.family_id
+            genome.stage = dbg.stage
+            genomes.append(genome)
         
     return all_genes, genomes
 

@@ -279,20 +279,20 @@ def cmd_tree(target_family: int, algo: str):
         console.print("[red]Cannot generate a phylogenetic tree for the Noise/Orphan cluster (-1).[/red]")
         return
         
-    evo_engine = EvolutionEngine(genomes)
-    
-    # Grab the stage from the first genome to display in the header
-    stage = family_genomes[0].stage
-    
+    with console.status(f"[cyan]Calculating Evolutionary Tree for Family {target_family}...[/cyan]", spinner="dots"):
+        evo_engine = EvolutionEngine(genomes)
+        
+        # Grab the stage from the first genome to display in the header
+        stage = family_genomes[0].stage
+        
+        if algo.lower() == "upgma":
+            tree = evo_engine.build_upgma_tree(family_genomes)
+        else:
+            tree = evo_engine.build_terminal_tree(family_genomes)
+            
     console.print(f"\n[bold cyan]Phylogenetic Tree for Family {target_family} (Stage {stage}) ({len(family_genomes)} variants)[/bold cyan]")
     console.print(f"[dim]Algorithm: {algo.upper()}[/dim]")
-    
-    if algo.lower() == "upgma":
-        tree = evo_engine.build_upgma_tree(family_genomes)
-        console.print(tree)
-    else:
-        tree = evo_engine.build_terminal_tree(family_genomes)
-        console.print(tree)
+    console.print(tree)
 
 def cmd_diff(ancestor_id: str, descendant_id: str):
     """Shows tactic-grouped mutations between two attacks (like git diff)."""
@@ -350,42 +350,43 @@ def cmd_ancestry(attack_id: str):
         return
         
     n = len(target_family)
-    import numpy as np
-    from src.similarity import sequence_alignment_distance
-    dist_matrix = np.zeros((n, n))
-    for i in range(n):
-        for j in range(i+1, n):
-            d = sequence_alignment_distance(target_family[i].genes, target_family[j].genes, is_string_match=False)
-            dist_matrix[i][j] = dist_matrix[j][i] = d
-            
-    root_idx = min(range(n), key=lambda idx: target_family[idx].created)
-    target_idx = target_family.index(target)
-    
-    visited = {root_idx}
-    children = {i: [] for i in range(n)}
-    parents = {root_idx: None}
-    
-    while len(visited) < n:
-        min_dist = float('inf')
-        best_edge = None
-        for u in visited:
-            for v in range(n):
-                if v not in visited and dist_matrix[u][v] < min_dist:
-                    min_dist = dist_matrix[u][v]
-                    best_edge = (u, v)
-        if best_edge:
-            u, v = best_edge
-            visited.add(v)
-            children[u].append(v)
-            parents[v] = u
-            
-    path = []
-    curr = target_idx
-    while curr is not None:
-        path.append(target_family[curr])
-        curr = parents.get(curr)
+    with console.status(f"[cyan]Tracing evolutionary ancestry for {target.name}...[/cyan]", spinner="dots"):
+        import numpy as np
+        from src.similarity import sequence_alignment_distance
+        dist_matrix = np.zeros((n, n))
+        for i in range(n):
+            for j in range(i+1, n):
+                d = sequence_alignment_distance(target_family[i].genes, target_family[j].genes, is_string_match=False)
+                dist_matrix[i][j] = dist_matrix[j][i] = d
+                
+        root_idx = min(range(n), key=lambda idx: target_family[idx].created)
+        target_idx = target_family.index(target)
         
-    path.reverse()
+        visited = {root_idx}
+        children = {i: [] for i in range(n)}
+        parents = {root_idx: None}
+        
+        while len(visited) < n:
+            min_dist = float('inf')
+            best_edge = None
+            for u in visited:
+                for v in range(n):
+                    if v not in visited and dist_matrix[u][v] < min_dist:
+                        min_dist = dist_matrix[u][v]
+                        best_edge = (u, v)
+            if best_edge:
+                u, v = best_edge
+                visited.add(v)
+                children[u].append(v)
+                parents[v] = u
+                
+        path = []
+        curr = target_idx
+        while curr is not None:
+            path.append(target_family[curr])
+            curr = parents.get(curr)
+            
+        path.reverse()
     
     console.print(f"\n[bold cyan]Ancestry for {target.id}[/bold cyan]")
     
