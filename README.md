@@ -35,15 +35,15 @@ CyberPhylogeny maps standard cybersecurity ideas into a 4-tier biological ontolo
 - **Evolutionary Family:** A group of Genomes that share a common ancestor.
 - **Phylogenetic Tree:** A branching graph showing exactly how a new attack evolved from an older one.
 
-## Mathematical Definitions
+## Core Concepts
 
-This research framework relies on formal definitions to model attacks:
+This research framework relies on the following core concepts to model attacks:
 
-* **Genome ($G$)**: An ordered sequence of genes. $G = [g_1, g_2, g_3, \dots, g_n]$
-* **Distance ($D(G_1, G_2)$)**: The mathematical distance between two genomes using a **Weighted Sequence Alignment** algorithm with hierarchical taxonomic penalties.
-* **Local Alignment (Prediction)**: Using the **Smith-Waterman** algorithm to mathematically discover optimal local subsequence matches to predict subsequent evolutionary steps.
-* **Mutation ($\Delta(G_1, G_2)$)**: The specific genetic changes (Insertions, Deletions, Substitutions) that turn $G_1$ into $G_2$.
-* **Family ($F$)**: A density-based cluster of genomes where the distance $D$ is less than a threshold $\epsilon$. $F = Cluster(G)$
+* **Genome**: The complete, ordered sequence of genes (techniques) that makes up an entire cyberattack.
+* **Distance**: How different two genomes are from each other. Instead of just checking if they match exactly, we use a biological "Weighted Sequence Alignment" algorithm to score them based on how closely related their tactics and behaviors are.
+* **Prediction**: Using a biological algorithm called "Smith-Waterman" to find the strongest matching patterns in historical attacks, which allows us to predict what the attacker might do next.
+* **Mutation**: The exact changes an attacker made to evolve their attack (e.g., Inserting a new technique, Deleting an old one, or Substituting one technique for another).
+* **Family**: A group of attacks (genomes) that are grouped together because their "Distance" is very small, meaning they likely share the same origin or threat actor.
 
 ## The Novel Contribution: Beyond Pattern Matching
 
@@ -51,9 +51,9 @@ Standard Threat Intelligence tools use MITRE ATT&CK to describe what an attacker
 
 1. **From Similarity to Ancestry:** Traditional systems compare two lists of techniques and give a simple score (e.g., "85% match"). CyberPhylogeny uses Minimum Spanning Trees (MST) to show *why* they are similar: *"Attack B evolved from Attack A, and here is the exact branch where it mutated."*
 2. **Biological Abstraction:** Comparing raw MITRE IDs (like `T1059.001` vs `T1059.006`) treats them as completely different strings. By using the 4-part Gene hierarchy, CyberPhylogeny mathematically understands that changing PowerShell to Python is *not* a new attack—it is just a **mutation** of the same underlying "Execution" gene.
-3. **Chronological Evolution vs. Heuristics:** The system parses exact ISO8601 timestamps from threat intelligence reports to root Minimum Spanning Trees temporally, abandoning mathematically unsound proxies like "sequence length".
-4. **Predictive Alignment vs. Reactive Detection:** CTI tools are reactive (they look at the past). CyberPhylogeny utilizes the **Smith-Waterman** local alignment algorithm to robustly handle insertions/deletions mid-attack, and probabilistically estimates the attacker's next move.
-5. **Algorithmic Scalability:** Features a custom **MinHash LSH (Locality-Sensitive Hashing)** pass to pre-filter and bucket genomes in $O(N)$ time before running the computationally expensive $O(K^2)$ sequence alignment matrices.
+3. **Chronological Evolution vs. Heuristics:** The system parses exact timestamps from threat intelligence reports to map out the evolutionary family tree, tracing real time rather than guessing based on sequence length.
+4. **Predictive Alignment vs. Reactive Detection:** CTI tools are reactive (they look at the past). CyberPhylogeny utilizes the **Smith-Waterman** local alignment algorithm to accurately predict the attacker's next move, even if they skip or add new steps mid-attack.
+5. **Algorithmic Scalability:** Features a custom **MinHash LSH** pass to instantly filter and bucket genomes before running the heavy comparison math, making the framework extremely fast.
 
 ## Project Architecture (Multi-Stage Pipeline)
 
