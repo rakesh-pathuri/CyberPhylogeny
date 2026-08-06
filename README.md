@@ -147,17 +147,46 @@ Prints a clean mathematical dendrogram showing relationships and branch heights.
 ```bash
 python main.py tree 24 --algo upgma
 ```
+*Example Output:*
+```text
+Phylogenetic Tree for Family 24 (3 variants)
+Algorithm: UPGMA
+UPGMA Dendrogram (Root Height: 3.88)
++-- S0527 (CSPY Downloader) (branch: 3.88)
+`-- Common Ancestor (height: 3.50, branch: 0.38)
+    +-- S0347 (AuditCred) (branch: 3.50)
+    `-- S0263 (TYPEFRAME) (branch: 3.50)
+```
 
 **4. Mutation Diff (Forensic Report)**
 Outputs a highly formatted, tactic-grouped report showing exactly what was inserted, deleted, or substituted between two attacks (just like `git diff`).
 ```bash
 python main.py diff S0347 S0527
 ```
+*Example Output:*
+```text
+Execution
+--------------
+Windows Command Shell
+v
+Scheduled Task
+
+ Windows Service
+->
+Malicious File
+```
 
 **5. Lineage Trace**
 Traces the evolutionary chain of a specific attack back to its root.
 ```bash
 python main.py lineage S0527
+```
+*Example Output:*
+```text
+Lineage for S0527
+Root: S0263 (TYPEFRAME)
+`-- S0347 (AuditCred)
+    `-- S0527 (CSPY Downloader)
 ```
 
 **6. Predict Next Steps** 
