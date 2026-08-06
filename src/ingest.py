@@ -87,7 +87,7 @@ def load_from_db(session: Session) -> Tuple[List[Gene], List[Genome]]:
             sequence.append(gene_map[link.gene_id])
             
         genome = Genome(
-            attack_id=dbg.id,
+            id=dbg.id,
             name=dbg.name,
             created=datetime.fromisoformat(dbg.created) if dbg.created else datetime.now()
         )
