@@ -197,7 +197,7 @@ def cmd_dashboard():
     for label, family in families.items():
         if label == -1 or len(family) < 2: continue
         mermaid_str = engine.build_phylogenetic_tree(family)
-        dashboard_data[label] = {
+        dashboard_data[str(label)] = {
             "size": len(family),
             "mermaid": mermaid_str
         }
