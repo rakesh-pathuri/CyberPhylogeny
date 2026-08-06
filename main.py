@@ -265,14 +265,14 @@ def cmd_genome(attack_id: str):
         console.print(f"[bold]Family[/bold] : {family_id} (Stage {stage})")
         console.print(f"[bold]Generation[/bold] : {generation}")
 
-def cmd_tree(stage: int, target_family: int, algo: str):
+def cmd_tree(target_family: int, algo: str):
     """Generates a Phylogenetic Tree for a family."""
     genomes = get_cached_genomes()
     
-    family_genomes = [g for g in genomes if str(g.family_id) == str(target_family) and str(g.stage) == str(stage)]
+    family_genomes = [g for g in genomes if str(g.family_id) == str(target_family)]
     
     if not family_genomes:
-        console.print(f"[red]Family {target_family} not found in Stage {stage} cache. Run 'python main.py cluster' first.[/red]")
+        console.print(f"[red]Family {target_family} not found in cache. Run 'python main.py cluster' first.[/red]")
         return
         
     if str(target_family) == "-1":
@@ -280,6 +280,9 @@ def cmd_tree(stage: int, target_family: int, algo: str):
         return
         
     evo_engine = EvolutionEngine(genomes)
+    
+    # Grab the stage from the first genome to display in the header
+    stage = family_genomes[0].stage
     
     console.print(f"\n[bold cyan]Phylogenetic Tree for Family {target_family} (Stage {stage}) ({len(family_genomes)} variants)[/bold cyan]")
     console.print(f"[dim]Algorithm: {algo.upper()}[/dim]")
@@ -421,7 +424,6 @@ if __name__ == "__main__":
     parser_tree = subparsers.add_parser("tree", help="Build a Phylogenetic Tree for a specific family")
     parser_tree.add_argument("family", type=str, help="Family ID to trace (e.g., '24')")
     parser_tree.add_argument("--algo", type=str, default="mst", choices=["mst", "upgma"], help="Algorithm to build tree (mst or upgma)")
-    parser_tree.add_argument("--stage", type=int, default=4, choices=[1, 2, 3, 4], help="Stage to pull the family from (default: 4)")
     
     # 5. Predict
     parser_predict = subparsers.add_parser("predict", help="Predict next steps of an ongoing attack")
@@ -449,7 +451,7 @@ if __name__ == "__main__":
     elif args.command == "genome":
         cmd_genome(args.attack_id)
     elif args.command == "tree":
-        cmd_tree(args.stage, int(args.family), args.algo)
+        cmd_tree(int(args.family), args.algo)
     elif args.command == "predict":
         cmd_predict(args.sequence, args.k)
     elif args.command == "diff":

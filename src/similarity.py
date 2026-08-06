@@ -74,17 +74,36 @@ class SimilarityEngine:
     def __init__(self, genomes: List[Genome]):
         self.genomes = genomes
         
-    def run_multi_stage_pipeline(self, eps: float = 0.45, min_samples: int = 2, eps_s3: float = 0.65):
-        """Runs the 3-stage classification pipeline to classify genomes and mathematically handle orphans."""
-        console.print(f"\n[bold green]--- STAGE 1: Sequence Alignment (Needleman-Wunsch) ---[/bold green]")
+    def run_multi_stage_pipeline(self, eps: float, min_samples: int, eps_s3: float = 0.65):
+        """Runs the 4-stage phylogenetic clustering pipeline with continuous family labeling."""
+        
+        def offset_labels(families, current_offset):
+            new_families = {}
+            max_label = -1
+            for label, group in families.items():
+                if label == -1:
+                    new_families[-1] = group
+                else:
+                    new_label = label + current_offset
+                    new_families[new_label] = group
+                    if new_label > max_label:
+                        max_label = new_label
+            
+            # The next available ID is max_label + 1
+            next_offset = max_label + 1 if max_label >= 0 else current_offset
+            return new_families, next_offset
+        
+        console.print(f"\n[bold cyan]--- STAGE 1: Sequence Alignment (Needleman-Wunsch) ---[/bold cyan]")
         families_s1, score_s1 = self._cluster_with_metric(self.genomes, metric_type="alignment_genes", eps=eps, min_samples=min_samples)
+        families_s1, next_offset = offset_labels(families_s1, 0)
         
         # Extract orphans from Stage 1 (label -1)
         orphans_s1 = families_s1.get(-1, [])
         if orphans_s1:
-            console.print(f"\n[bold yellow]--- STAGE 2: Unordered Motif Matching (Jaccard Similarity) ---[/bold yellow]")
+            console.print(f"\n[bold cyan]--- STAGE 2: Unordered Motif Matching (Jaccard Similarity) ---[/bold cyan]")
             console.print(f"[dim]Analyzing {len(orphans_s1)} orphans from Stage 1...[/dim]")
             families_s2, score_s2 = self._cluster_with_metric(orphans_s1, metric_type="jaccard_genes", eps=eps, min_samples=min_samples)
+            families_s2, next_offset = offset_labels(families_s2, next_offset)
         else:
             families_s2 = {-1: []}
             score_s2 = 0.0
@@ -95,6 +114,7 @@ class SimilarityEngine:
             console.print(f"\n[bold cyan]--- STAGE 3: Taxonomic Zooming (Parent Technique Alignment) ---[/bold cyan]")
             console.print(f"[dim]Analyzing {len(orphans_s2)} orphans from Stage 2 with eps={eps_s3}...[/dim]")
             families_s3, score_s3 = self._cluster_with_metric(orphans_s2, metric_type="alignment_parents", eps=eps_s3, min_samples=min_samples)
+            families_s3, next_offset = offset_labels(families_s3, next_offset)
         else:
             families_s3 = {-1: []}
             score_s3 = 0.0
@@ -105,6 +125,7 @@ class SimilarityEngine:
             console.print(f"\n[bold cyan]--- STAGE 4: Unordered Motif Matching (Parent Techniques) ---[/bold cyan]")
             console.print(f"[dim]Analyzing {len(orphans_s3)} orphans from Stage 3 with eps=0.85...[/dim]")
             families_s4, score_s4 = self._cluster_with_metric(orphans_s3, metric_type="jaccard_parents", eps=0.85, min_samples=min_samples)
+            families_s4, next_offset = offset_labels(families_s4, next_offset)
         else:
             families_s4 = {-1: []}
             score_s4 = 0.0
