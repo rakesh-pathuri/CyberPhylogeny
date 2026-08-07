@@ -29,7 +29,9 @@ CyberPhylogeny maps standard cybersecurity ideas into a 4-tier biological ontolo
   Postconditions              → Extracted plaintext credentials/hashes
   Allowed Implementations     → LSASS Memory, NTDS.dit, DCSync
   ```
-- **Genome:** The ordered sequence of Genes that makes up a complete cyberattack. While modern attacks may involve branching or retries, an individual **execution trace** (a specific instance of an attack) is a linear temporal path. The Genome models this trace.
+- **Genome:** The ordered sequence of Genes that makes up a complete cyberattack. While modern attacks involve branching or retries, an individual **execution trace** (a specific instance of an attack) is a linear temporal path. 
+  > [!WARNING]
+  > **Methodological Proxy:** Because MITRE STIX data does not contain temporal execution logs, the ingest parser deterministically sorts techniques by the MITRE kill-chain to create a synthetic sequence. The current STIX ingest acts as a structural proxy baseline to demonstrate the sequence alignment engine, which is ultimately designed for real EDR execution traces.
 - **Evolutionary Family:** A group of Genomes that share a common ancestor.
 - **Phylogenetic Tree:** A branching graph constructed to infer the most likely evolutionary lineage. While computing true Maximum Parsimony is computationally intractable for large datasets, CyberPhylogeny utilizes **Minimum Spanning Trees (MST)** to build a parsimonious approximation by finding the shortest mutational paths connecting observed attack sequences.
 
@@ -49,7 +51,9 @@ Why model attacks as evolving genomes instead of simply comparing ATT&CK sequenc
 
 1. **From Similarity to Lineage Inference:** Traditional systems compare two lists of techniques and give a static similarity score (e.g., "85% match"). CyberPhylogeny's true novelty is reconstructing *ancestry*. It infers the most parsimonious lineage, estimating how an attack evolved and identifying the exact branch where it mutated.
 2. **Biological Abstraction:** By treating techniques as computational Genes, CyberPhylogeny mathematically tracks tactical mutations preserving the same underlying function, abstracting away polymorphic noise.
-3. **Maximum Parsimony vs. Chronology:** Real evolution is driven by accumulating mutations, not just the passage of time. CyberPhylogeny uses chronological timestamps only as a *directional constraint* (a descendant cannot predate its ancestor) while relying on **Maximum Parsimony** (MST) to determine the actual evolutionary lineage.
+3. **Maximum Parsimony vs. Chronology:** Real evolution is driven by accumulating mutations. CyberPhylogeny uses timestamps as a directional constraint while relying on **Maximum Parsimony** (MST) to determine evolutionary relationships.
+   > [!NOTE]
+   > The current STIX ingest relies on the MITRE `created` timestamp (when the record was catalogued), not the actual operational date. Therefore, the resulting trees represent a **Taxonomic Hierarchy** of documented tradecraft rather than true historical attribution.
 4. **Predictive Alignment:** CTI tools are typically reactive. CyberPhylogeny utilizes local sequence alignment (Smith-Waterman) to accurately align ongoing, incomplete attack sequences against historical genomes. These alignments identify the most similar historical subsequences, which then feed our KNN engine to probabilistically estimate the next move.
 5. **Algorithmic Scalability:** Features a custom **MinHash LSH** pass to instantly filter and bucket genomes before running the heavy comparison math, making the framework extremely fast.
 
@@ -57,7 +61,9 @@ Why model attacks as evolving genomes instead of simply comparing ATT&CK sequenc
 
 To clarify what a "Genome" represents in this framework, we define the following scope:
 - **Attack Scope**: We model linear *execution traces* of malware, tools, or specific APT campaigns.
-- **Unified Genomic Space**: We cluster APT groups, malware, and open-source tools together into a single taxonomic tree. Modern APT campaigns frequently subsume and evolve from commodity malware and open-source tools; tracing this evolutionary lineage requires a unified biological ontology.
+- **Unified Genomic Space**: We cluster APT groups, malware, and open-source tools together into a single taxonomic tree. 
+  > [!CAUTION]
+  > This is an experimental design choice for tracking the spread of *tradecraft ideas*. Biological phylogeny models replication-with-mutation of the same entity type. An organization (APT) does not literally "mutate into" a piece of software (malware). This engine tracks the transmission of tactical sequences across the ecosystem, conflating organizations and artifacts for broader behavioral tracking.
 - **The Genome (Behavioral Transitions)**: Rather than treating the genome as a flat sequence of isolated techniques (which leads to massive overlap on common commodity tools like PowerShell), the genome is modeled as an ordered sequence of **Tactical Transitions** (Bigrams) (e.g., `PowerShell -> Scheduled Task`). This forces the alignment engine to evaluate the *flow* of an attack rather than just its constituent parts, perfectly encapsulating biological evolution.
 - **Data Source**: We utilize MITRE ATT&CK STIX data, mapping techniques as the foundational genomic alphabet.
 
@@ -99,11 +105,11 @@ To successfully cluster polymorphic attacks, CyberPhylogeny uses a cascading wat
 
 By cascading these stages, the pipeline achieves an **80% reduction in noise (orphans)** across 955 MITRE ATT&CK profiles!
 
-## Evaluation Metrics
+## Future Evaluation Criteria
 
-To validate the framework's efficacy against traditional CTI, CyberPhylogeny utilizes the following evaluation framework:
+To fully validate the framework's efficacy against traditional CTI on real EDR data, CyberPhylogeny's architecture is designed to support the following future evaluations:
 * **Similarity Accuracy**: Benchmarking Sequence Alignment vs raw Jaccard similarity.
-* **Family Reconstruction Accuracy**: Validating cluster purity against ground truth datasets, including known MITRE ATT&CK Group overlaps and specific APT threat intelligence reports (e.g., isolating distinct APT29 evolutionary branches).
+* **Family Reconstruction Accuracy**: Validating cluster purity against ground truth datasets, including known MITRE ATT&CK Group overlaps.
 * **Prediction Accuracy**: Cross-validating the KNN prediction engine's ability to estimate the next gene in historical data despite active insertions/deletions.
 * **Mutation Detection Accuracy**: Tracking how accurately substitutions identify polymorphic malware variants.
 * **Phylogenetic Consistency**: Validating the Maximum Parsimony tree structure against temporal CTI reports.

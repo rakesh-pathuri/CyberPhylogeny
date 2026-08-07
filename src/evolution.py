@@ -151,13 +151,14 @@ class EvolutionEngine:
                 
         return aligned[::-1], mutation_distance
 
-    def build_terminal_tree(self, family_genomes: List[Genome]) -> "rich.tree.Tree":
-        from rich.tree import Tree
+    @staticmethod
+    def compute_mst(family_genomes: List[Genome]) -> Tuple[Dict[int, int], int, np.ndarray]:
+        """
+        Builds a Minimum Spanning Tree using Prim's algorithm, enforcing the temporal constraint
+        that a descendant cannot predate its ancestor (based on STIX catalogue created date).
+        Returns: (parents_dict, root_idx, dist_matrix)
+        """
         n = len(family_genomes)
-        if n == 0:
-            return Tree("Empty Family")
-            
-        # Recalculate MST (in production we'd cache this)
         dist_matrix = np.zeros((n, n))
         for i in range(n):
             for j in range(i+1, n):
@@ -166,22 +167,50 @@ class EvolutionEngine:
                 
         root_idx = min(range(n), key=lambda idx: family_genomes[idx].created)
         visited = {root_idx}
-        
-        # Build adjacency list for tree
-        children = {i: [] for i in range(n)}
+        parents = {}
         
         while len(visited) < n:
             min_dist = float('inf')
             best_edge = None
             for u in visited:
                 for v in range(n):
-                    if v not in visited and dist_matrix[u][v] < min_dist:
-                        min_dist = dist_matrix[u][v]
-                        best_edge = (u, v)
+                    if v not in visited:
+                        # Enforce temporal constraint: descendant cannot predate ancestor
+                        if family_genomes[v].created < family_genomes[u].created:
+                            penalty = 1000.0 # Heavy penalty to respect chronology without breaking the graph
+                        else:
+                            penalty = 0.0
+                            
+                        d = dist_matrix[u][v] + penalty
+                        if d < min_dist:
+                            min_dist = d
+                            best_edge = (u, v)
+                            
             if best_edge:
                 u, v = best_edge
                 visited.add(v)
-                children[u].append(v)
+                parents[v] = u
+            else:
+                # Fallback safety
+                unvisited = [x for x in range(n) if x not in visited]
+                v = unvisited[0]
+                visited.add(v)
+                parents[v] = root_idx
+                
+        return parents, root_idx, dist_matrix
+
+    def build_terminal_tree(self, family_genomes: List[Genome]) -> "rich.tree.Tree":
+        from rich.tree import Tree
+        n = len(family_genomes)
+        if n == 0:
+            return Tree("Empty Family")
+            
+        parents, root_idx, dist_matrix = self.compute_mst(family_genomes)
+        
+        # Build adjacency list for tree
+        children = {i: [] for i in range(n)}
+        for child, parent in parents.items():
+            children[parent].append(child)
                 
         root_tree = Tree(f"[bold white]Evolutionary Tree[/bold white]")
         

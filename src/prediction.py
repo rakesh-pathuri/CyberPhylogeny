@@ -72,17 +72,14 @@ class PredictionEngine:
                     )
                     dp[i][j] = val
                     
-                    # Track the best local match
-                    if val > max_score:
+                    # Track the best local match that HAS a continuation
+                    if val > max_score and i < n:
                         max_score = val
-                        # The next gene is exactly after the end of this historical match
-                        if i < n:
-                            best_next_gene = hist_genes[i]
-                        else:
-                            best_next_gene = None
+                        best_next_gene = hist_genes[i]
                             
             if best_next_gene and max_score > 0:
-                distances.append((max_score, best_next_gene, genome.id))
+                normalized_score = max_score / (m * 3.0)
+                distances.append((normalized_score, best_next_gene, genome.id))
                 
         if not distances:
             return []
@@ -95,6 +92,7 @@ class PredictionEngine:
         
         # Calculate true probability multipliers
         prediction_weights = {}
+        prediction_counts = {}
         total_weight = 0.0
         
         for score, next_gene, _ in nearest_neighbors:
@@ -103,6 +101,7 @@ class PredictionEngine:
             if weight > 0:
                 transition_id = f"{next_gene.source_technique_id}->{next_gene.target_technique_id}"
                 prediction_weights[transition_id] = prediction_weights.get(transition_id, 0.0) + weight
+                prediction_counts[transition_id] = prediction_counts.get(transition_id, 0) + 1
                 total_weight += weight
                 
         if total_weight == 0:
@@ -113,10 +112,10 @@ class PredictionEngine:
             prob = weight / total_weight
             gene = self.gene_lookup.get(next_id)
             if gene:
-                # Store (Gene, Probability, Confidence Multiplier)
                 # Confidence Multiplier is the average weight for this specific prediction branch
                 # e.g., if a prediction came from two perfect matches (weight 1.0 + 1.0), confidence is 1.0
-                predictions.append((gene, prob, weight))
+                avg_confidence = weight / prediction_counts[next_id]
+                predictions.append((gene, prob, avg_confidence))
                 
         predictions.sort(key=lambda x: x[1], reverse=True)
         return predictions
