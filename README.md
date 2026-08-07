@@ -45,7 +45,7 @@ To elevate this framework beyond a heuristic analogy, we rely on formal mathemat
 - **Mutation (Δ(G1, G2))**: The specific genetic changes (Insertions, Deletions, Substitutions) that turn `G1` into `G2`.
 - **Family (F)**: A density-based cluster of genomes where the distance `D` is less than a threshold `ϵ`. `F = { G | D(G1, G2) < ϵ }`
 
-## The Novel Contribution: Beyond Pattern Matching
+## The Novel Approach: Beyond Pattern Matching
 
 Why model attacks as evolving genomes instead of simply comparing ATT&CK sequences? Standard Threat Intelligence tools fail when faced with polymorphism because they treat a substitution of `PowerShell` to `Python` as a 100% miss. CyberPhylogeny introduces a new approach by shifting focus from **similarity** to **ancestry**:
 
