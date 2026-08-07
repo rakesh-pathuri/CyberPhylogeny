@@ -7,7 +7,7 @@
 [![Graph Analytics](https://img.shields.io/badge/Domain-Graph_Analytics-purple)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> **Research Concept:** CyberPhylogeny models cyberattacks as evolving behavioral genomes and reconstructs their evolutionary lineage using bioinformatics-inspired sequence analysis and phylogenetic inference.
+> **Research Concept:** CyberPhylogeny models cyberattacks as evolving behavioral genomes and infers their structural relationships using bioinformatics-inspired sequence analysis and taxonomic clustering.
 
 ## Research Hypotheses
 
@@ -47,15 +47,15 @@ To elevate this framework beyond a heuristic analogy, we rely on formal mathemat
 
 ## The Novel Approach: Beyond Pattern Matching
 
-Why model attacks as evolving genomes instead of simply comparing ATT&CK sequences? Standard Threat Intelligence tools fail when faced with polymorphism because they treat a substitution of `PowerShell` to `Python` as a 100% miss. CyberPhylogeny introduces a new approach by shifting focus from **similarity** to **ancestry**:
+Why model attacks as evolving genomes instead of simply comparing ATT&CK sequences? Standard Threat Intelligence tools fail when faced with polymorphism because they treat a substitution of `PowerShell` to `Python` as a 100% miss. CyberPhylogeny introduces a new approach by shifting focus from static similarity to structural taxonomy:
 
-1. **From Similarity to Lineage Inference:** Traditional systems compare two lists of techniques and give a static similarity score (e.g., "85% match"). CyberPhylogeny's true novelty is reconstructing *ancestry*. It infers the most parsimonious lineage, estimating how an attack evolved and identifying the exact branch where it mutated.
+1. **From Similarity to Structural Inference:** Traditional systems compare two lists of techniques and give a static similarity score (e.g., "85% match"). CyberPhylogeny infers the most parsimonious structural path, estimating how an attack might have mutated and identifying the exact branch where tradecraft shifted.
 2. **Biological Abstraction:** By treating techniques as computational Genes, CyberPhylogeny mathematically tracks tactical mutations preserving the same underlying function, abstracting away polymorphic noise.
 3. **Maximum Parsimony vs. Chronology:** Real evolution is driven by accumulating mutations. CyberPhylogeny uses timestamps as a directional constraint while relying on **Maximum Parsimony** (MST) to determine evolutionary relationships.
    > [!NOTE]
    > The current STIX ingest relies on the MITRE `created` timestamp (when the record was catalogued), not the actual operational date. Therefore, the resulting trees represent a **Taxonomic Hierarchy** of documented tradecraft rather than true historical attribution.
 4. **Predictive Alignment:** CTI tools are typically reactive. CyberPhylogeny utilizes local sequence alignment (Smith-Waterman) to accurately align ongoing, incomplete attack sequences against historical genomes. These alignments identify the most similar historical subsequences, which then feed our KNN engine to probabilistically estimate the next move.
-5. **Algorithmic Scalability:** Features a custom **MinHash LSH** pass to instantly filter and bucket genomes before running the heavy comparison math, making the framework extremely fast.
+5. **Algorithmic Scalability:** Features a custom **MinHash LSH** pass to filter and bucket genomes before running sequence alignment.
 
 ## Threat Model & Assumptions
 
@@ -64,7 +64,7 @@ To clarify what a "Genome" represents in this framework, we define the following
 - **Unified Genomic Space**: We cluster APT groups, malware, and open-source tools together into a single taxonomic tree. 
   > [!CAUTION]
   > This is an experimental design choice for tracking the spread of *tradecraft ideas*. Biological phylogeny models replication-with-mutation of the same entity type. An organization (APT) does not literally "mutate into" a piece of software (malware). This engine tracks the transmission of tactical sequences across the ecosystem, conflating organizations and artifacts for broader behavioral tracking.
-- **The Genome (Behavioral Transitions)**: Rather than treating the genome as a flat sequence of isolated techniques (which leads to massive overlap on common commodity tools like PowerShell), the genome is modeled as an ordered sequence of **Tactical Transitions** (Bigrams) (e.g., `PowerShell -> Scheduled Task`). This forces the alignment engine to evaluate the *flow* of an attack rather than just its constituent parts, perfectly encapsulating biological evolution.
+- **The Genome (Behavioral Transitions)**: Rather than treating the genome as a flat sequence of isolated techniques (which leads to massive overlap on common commodity tools like PowerShell), the genome is modeled as an ordered sequence of **Tactical Transitions** (Bigrams) (e.g., `PowerShell -> Scheduled Task`). This forces the alignment engine to evaluate the flow of an attack rather than just its constituent parts.
 - **Data Source**: We utilize MITRE ATT&CK STIX data, mapping techniques as the foundational genomic alphabet.
 
 ## Project Architecture (Multi-Stage Pipeline)
@@ -133,7 +133,7 @@ To fully validate the framework's efficacy against traditional CTI on real EDR d
    ```
 3. **Install Dependencies:**
    ```bash
-   pip install rich scikit-learn numpy pydantic requests
+   pip install rich scikit-learn numpy pydantic requests sqlalchemy
    ```
 
 ### Command Line Interface & Examples
@@ -290,8 +290,8 @@ Mutations
   [+] Modify Registry->System Checks (New Transition)
 ```
 
-**5. Ancestry Trace**
-Traces the evolutionary ancestry of a specific attack back to its root.
+**5. Taxonomic Trace (Ancestry)**
+Traces the inferred structural ancestry of a specific attack back to its root.
 ```bash
 python main.py ancestry S0527
 ```
@@ -353,11 +353,11 @@ Ongoing Attack Sequence (Transitions): ['T1583.001->T1588.002', 'T1588.002->T118
 
 Most Probable Next Behaviors:
 +--------------------------------------------------------------------------------------------------------------------------+
-| Predicted Transition | Implementation Transition                                | Tactical Flow          | Prob.  | Conf.|
-|----------------------+----------------------------------------------------------+------------------------+--------+------|
-| T1189->T1566.001     | Drive-by Compromise -> Spearphishing Attachment          | initial-access         | 71.4%  | 10.0x|
-| T1190->T1199         | Exploit Public-Facing Application -> Trusted Relat...    | initial-access         | 28.6%  |  4.0x|
-+--------------------------------------------------------------------------------------------------------------------------+
+| Predicted Transition      | Implementation Transition                                | Tactical Flow          | Prob.  | Conf.|
+|---------------------------+----------------------------------------------------------+------------------------+--------+------|
+| T1189->T1566.001          | Drive-by Compromise -> Spearphishing Attachment          | initial-access         | 71.4%  | 0.83x|
+| T1190->T1199              | Exploit Public-Facing Application -> Trusted Relat...    | initial-access         | 28.6%  | 0.67x|
++-------------------------------------------------------------------------------------------------------------------------------+
 * Confidence Score represents the mathematical similarity of the historical sequence matched (1.0 = perfect suffix alignment).
 ```
 
